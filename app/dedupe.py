@@ -42,7 +42,12 @@ def decide(alert: Alert, rules: FilterRules, lookup: StateLookup) -> Decision:
     new_hash = alert.content_hash()
 
     if alert.message_type == "Cancel":
-        candidates = [lookup(alert.nws_id)] + [lookup(r) for r in alert.references]
+        # A cancellation must never be rebroadcast after its own confirmed send.
+        # Older referenced warning state remains sent, so check cancellation first.
+        own_state = lookup(alert.nws_id)
+        if own_state and own_state["disposition"] == "cancelled":
+            return Decision("duplicate", False, "cancellation already broadcast")
+        candidates = [own_state] + [lookup(r) for r in alert.references]
         if any(_is_sent(s) for s in candidates):
             return Decision("cancelled", True, "early cancellation")
         return Decision("filtered", False, "cancel of alert never sent")

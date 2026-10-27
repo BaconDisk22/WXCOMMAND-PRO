@@ -14,6 +14,21 @@ Monitor National Weather Service alerts, review radio connectivity, and manage c
 
 ---
 
+## Screenshots
+
+The screenshots below are generated automatically from the **simulated demonstration dashboard**, not live weather or radio hardware. On successful pushes to `main`, GitHub Actions refreshes the images in `docs/screenshots/`.
+
+### Normal operations
+![WXCOMMAND-PRO demo showing normal operations](docs/screenshots/wxcommand-pro-normal.png)
+
+### Severe weather simulation
+![WXCOMMAND-PRO demo showing simulated severe weather warnings](docs/screenshots/wxcommand-pro-storm.png)
+
+### Radio outage simulation
+![WXCOMMAND-PRO demo showing simulated radio outage](docs/screenshots/wxcommand-pro-offline.png)
+
+Run WXCOMMAND-PRO locally and open `/demo` to explore the scenarios. This demonstration is read-only and does not transmit over radios.
+
 ## Overview
 
 WXCOMMAND-PRO is a self-hosted weather monitoring and mesh radio broadcast platform. It connects public alert information with compatible off-grid radio networks, helping operators maintain situational awareness and distribute concise alerts over LoRa.

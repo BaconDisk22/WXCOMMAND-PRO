@@ -193,3 +193,10 @@ async def notification_history(request: Request):
     for item in active:
         item["acknowledged_at"] = db.get_setting("ux_ack_" + item["id"], None)
     return {"notifications": active, "note": "Acknowledgements persist; resolved warnings are not retained."}
+
+
+@router.get("/demo", response_class=HTMLResponse)
+async def demonstration():
+    """Fully isolated static showcase: no hardware, network, or database reads."""
+    from pathlib import Path
+    return HTMLResponse((Path(__file__).parent / "templates" / "demo.html").read_text(encoding="utf-8"))

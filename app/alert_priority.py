@@ -21,5 +21,5 @@ def is_urgent_weather(text: str) -> bool:
     Word boundaries avoid accidentally promoting 'notatornado warning'.
     """
     normalized = re.sub(r"[^a-z0-9]+", " ", text.casefold()).strip()
-    return any(re.search(r"(?<!\\w)" + re.escape(event) + r"(?!\\w)", normalized)
+    return any(re.search(r"(?<!\w)" + re.escape(event) + r"(?!\w)", normalized)
                for event in URGENT_EVENTS)
