@@ -1,0 +1,88 @@
+name: Publish successful builds
+
+# Only publish artifacts built and validated on the protected main branch.
+# workflow_run uses the workflow file from the default branch.
+on:
+  workflow_run:
+    workflows: ["WXCOMMAND-PRO AutoPilot"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: wxcommand-build-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Resolve validated run
+        id: run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            RUN_ID="$(gh api "repos/$REPO/actions/workflows/autopilot.yml/runs?branch=main&event=push&status=success&per_page=30" --jq '.workflow_runs[0].id')"
+            test -n "$RUN_ID" && test "$RUN_ID" != null
+            HEAD_SHA="$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq .head_sha)"
+          fi
+          # Revalidate the source run; never release PR, fork or failed artifacts.
+          gh api "repos/$REPO/actions/runs/$RUN_ID" > run.json
+          jq -e --arg repo "$REPO" --arg sha "$HEAD_SHA" '
+            .conclusion == "success" and .event == "push" and
+            .head_branch == "main" and .head_sha == $sha and
+            .head_repository.full_name == $repo' run.json
+          echo "id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "tag=build-$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Download validated macOS and Pi artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ steps.run.outputs.id }}
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+          gh run download "$RUN_ID" -R "$REPO" -n wxcommand-pro-macos-intel-launcher -D mac-app
+          gh run download "$RUN_ID" -R "$REPO" -n wxcommand-pro-pi-source -D pi
+          test -d mac-app/WXCOMMAND-PRO.app
+          test -f pi/wxcommand-pro-pi-source.tar.gz
+          # Preserve the .app bundle as a zip; upload-artifact itself is not a distributable .app.
+          (cd mac-app && zip -qry ../assets/WXCOMMAND-PRO-macOS-Intel.zip WXCOMMAND-PRO.app)
+          cp pi/wxcommand-pro-pi-source.tar.gz assets/WXCOMMAND-PRO-Raspberry-Pi-source.tar.gz
+          (cd assets && sha256sum * > SHA256SUMS.txt)
+
+      - name: Create immutable build release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ steps.run.outputs.tag }}
+          SHA: ${{ steps.run.outputs.sha }}
+          RUN_ID: ${{ steps.run.outputs.id }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" -R "$REPO" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; not overwriting published artifacts."
+            exit 0
+          fi
+          gh release create "$TAG" assets/* -R "$REPO" --target "$SHA" \
+            --title "WXCOMMAND-PRO validated build $RUN_ID" --prerelease \
+            --notes "Automated artifacts from successful AutoPilot run $RUN_ID on main at commit $SHA. macOS Intel launcher is unsigned and not hardware-verified. Raspberry Pi bundle is source plus installer, not a native binary. SHA256SUMS.txt lists checksums."
