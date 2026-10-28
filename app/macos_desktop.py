@@ -16,6 +16,8 @@ def reserve_socket(host: str, port: int) -> socket.socket:
     family = socket.AF_INET6 if ':' in host else socket.AF_INET
     sock = socket.socket(family, socket.SOCK_STREAM)
     try:
+        # Quit-then-reopen leaves TIME_WAIT connections; a live listener still conflicts.
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind((host, port))
         sock.listen(128)
         return sock
