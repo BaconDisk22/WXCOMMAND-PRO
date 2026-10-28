@@ -28,7 +28,7 @@ localhost or a trusted network protected by access controls.
 ## Intel Mac (including Intel Tahoe)
 1. Download the standalone Intel DMG from GitHub Releases.
 2. Drag `WXCOMMAND-PRO.app` to Applications and open it.
-3. Use the **WX** menu-bar menu to open the dashboard or quit the server.
+3. The Operator Center opens in its own window. Closing it keeps the server running; click the Dock icon to reopen, ⌘Q to quit.
 4. Grant Bluetooth and local-network access when macOS requests it.
 5. Keep dry-run enabled until actual radios have been checked on a dedicated test channel.
 

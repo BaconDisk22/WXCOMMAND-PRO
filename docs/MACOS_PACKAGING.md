@@ -6,7 +6,7 @@
 - `dist/WXCOMMAND-PRO-macOS-Intel.zip` (preserves the app root and symlinks)
 - `dist/WXCOMMAND-PRO-macOS-Intel.dmg` (app plus an Applications shortcut)
 
-The app includes CPython, native extensions, Meshtastic/MeshCore transports, CoreBluetooth integration, local-network discovery, Jinja templates including demo mode, CA certificates and timezone data. The existing weather/alert logic and safe defaults are unchanged. The Mac entry point runs the existing application, waits for server readiness before opening `/operator`, and provides a WX menu to reopen the dashboard or quit. A busy port fails startup rather than displaying another service. Bluetooth and local-network purpose strings are included in Info.plist.
+The app includes CPython, native extensions, Meshtastic/MeshCore transports, CoreBluetooth integration, local-network discovery, Jinja templates including demo mode, CA certificates and timezone data. The existing weather/alert logic and safe defaults are unchanged. The Mac entry point runs the existing application, and shows the Operator Center in its own native window (WebKit), with a Dock icon and standard menus. Links to outside sites open in the default browser. Closing the window keeps the server and alert broadcasting running; click the Dock icon to reopen it. A busy port fails startup rather than displaying another service. Bluetooth and local-network purpose strings are included in Info.plist.
 
 ## Build on Intel macOS
 
@@ -25,7 +25,7 @@ The verifier temporarily renames the checkout and restores it in a `finally` blo
 
 The existing main-only successful AutoPilot release workflow downloads the new `wxcommand-pro-macos-intel-standalone` artifact. The different artifact name prevents publishing the old checkout-dependent launcher as a standalone release. Both ZIP and DMG are required. They are published with the unchanged Pi source package and SHA256SUMS.txt. Existing run provenance checks, prerequisite jobs, prerelease status and immutable-release behavior remain in force. PR builds only upload Actions artifacts; they do not publish releases. Version-tag Docker/Windows publishing is unchanged.
 
-The app is ad-hoc signed for bundle integrity, **not Developer ID signed or notarized**. A quarantined internet download may be blocked by Gatekeeper; use macOS Privacy & Security approval only after verifying the source and checksum. Do not disable Gatekeeper globally. Replacing the app leaves settings and backups outside the bundle intact. Closing the browser does not stop the server; use **WX → Quit WXCOMMAND-PRO**.
+The app is ad-hoc signed for bundle integrity, **not Developer ID signed or notarized**. A quarantined internet download may be blocked by Gatekeeper; use macOS Privacy & Security approval only after verifying the source and checksum. Do not disable Gatekeeper globally. Replacing the app leaves settings and backups outside the bundle intact. Closing the window does not stop the server; use **WXCOMMAND-PRO → Quit** (⌘Q).
 
 ## Acceptance boundaries
 

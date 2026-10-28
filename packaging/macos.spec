@@ -29,7 +29,7 @@ app = BUNDLE(coll, name='WXCOMMAND-PRO.app', bundle_identifier='org.wxcommandpro
              version=version, info_plist={
                  'CFBundleDisplayName': 'WXCOMMAND-PRO',
                  'CFBundleShortVersionString': version,
-                 'LSUIElement': True,
+                 'NSHighResolutionCapable': True,
                  'NSBluetoothAlwaysUsageDescription': 'Connect to Meshtastic and MeshCore Bluetooth radios.',
                  'NSBluetoothPeripheralUsageDescription': 'Discover and connect to your mesh radios.',
                  'NSLocalNetworkUsageDescription': 'Discover and connect to mesh radios over Wi-Fi or TCP.',

@@ -1,7 +1,7 @@
 """Desktop binding fails closed instead of opening an unrelated local service."""
 import socket
 import pytest
-from app.macos_desktop import reserve_socket
+from app.macos_desktop import is_app_url, reserve_socket
 
 
 def test_desktop_reserves_loopback_before_startup():
@@ -38,3 +38,12 @@ def test_build_refuses_non_macos(monkeypatch, tmp_path):
     with pytest.raises(RuntimeError, match='Intel macOS'):
         build_macos_app.build(tmp_path)
     assert not list(tmp_path.iterdir())
+
+
+def test_only_local_server_pages_stay_in_app_window():
+    origin = 'http://127.0.0.1:8000'
+    assert is_app_url('http://127.0.0.1:8000/operator', origin)
+    assert is_app_url('about:blank', origin)
+    assert not is_app_url('https://github.com/BaconDisk22/WXCOMMAND-PRO/releases', origin)
+    assert not is_app_url('http://127.0.0.1:9000/', origin)
+    assert not is_app_url('https://127.0.0.1:8000/', origin)

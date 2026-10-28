@@ -29,7 +29,7 @@ def build(root: Path) -> Path:
         (staging / 'Applications').symlink_to('/Applications')
         (staging / 'Install.txt').write_text(
             'Drag WXCOMMAND-PRO.app to Applications, then open it.\n'
-            'Use the WX menu-bar menu to open the dashboard or quit.\n'
+            'The Operator Center opens in its own window. Press Cmd-Q to quit.\n'
             'This prerelease is not Developer ID signed or notarized.\n'
             'Radio hardware and target macOS compatibility require separate verification.\n')
         subprocess.run(['hdiutil', 'create', '-ov', '-volname', 'WXCOMMAND-PRO',
