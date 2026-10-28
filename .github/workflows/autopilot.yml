@@ -63,10 +63,15 @@ jobs:
         run: |
           test -x "dist/WXCOMMAND-PRO.app/Contents/MacOS/WXCOMMAND-PRO"
           plutil -lint "dist/WXCOMMAND-PRO.app/Contents/Info.plist"
+      - name: Archive macOS launcher
+        run: |
+          # Archive before upload so the .app root and executable modes survive transport.
+          (cd dist && zip -qry WXCOMMAND-PRO-macOS-Intel.zip WXCOMMAND-PRO.app)
+          unzip -tq dist/WXCOMMAND-PRO-macOS-Intel.zip
       - uses: actions/upload-artifact@v4
         with:
           name: wxcommand-pro-macos-intel-launcher
-          path: dist/WXCOMMAND-PRO.app
+          path: dist/WXCOMMAND-PRO-macOS-Intel.zip
           if-no-files-found: error
 
   build-pi:

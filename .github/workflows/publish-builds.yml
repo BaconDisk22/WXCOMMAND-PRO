@@ -63,10 +63,11 @@ jobs:
           mkdir -p assets
           gh run download "$RUN_ID" -R "$REPO" -n wxcommand-pro-macos-intel-launcher -D mac-app
           gh run download "$RUN_ID" -R "$REPO" -n wxcommand-pro-pi-source -D pi
-          test -d mac-app/WXCOMMAND-PRO.app
+          test -f mac-app/WXCOMMAND-PRO-macOS-Intel.zip
+          unzip -tq mac-app/WXCOMMAND-PRO-macOS-Intel.zip
           test -f pi/wxcommand-pro-pi-source.tar.gz
-          # Preserve the .app bundle as a zip; upload-artifact itself is not a distributable .app.
-          (cd mac-app && zip -qry ../assets/WXCOMMAND-PRO-macOS-Intel.zip WXCOMMAND-PRO.app)
+          # Publish the archive produced on the Intel runner without repacking it.
+          cp mac-app/WXCOMMAND-PRO-macOS-Intel.zip assets/WXCOMMAND-PRO-macOS-Intel.zip
           cp pi/wxcommand-pro-pi-source.tar.gz assets/WXCOMMAND-PRO-Raspberry-Pi-source.tar.gz
           (cd assets && sha256sum * > SHA256SUMS.txt)
 
