@@ -18,7 +18,7 @@
 
 ## Hardware and data
 - [ ] Raspberry Pi 4 boot, restart, backup and offline restore verified.
-- [ ] Intel Mac app launcher tested on actual target hardware.
+- [ ] Intel Mac standalone ZIP and DMG tested on actual target hardware, including Finder launch, WX menu quit, and Gatekeeper approval.
 - [ ] Meshtastic and MeshCore USB, TCP, BLE tests completed where supported.
 - [ ] Failover tested without duplicate sends on test channels.
 - [ ] NWS/IPAWS filter, dedupe, cancellation and expiration behavior verified.

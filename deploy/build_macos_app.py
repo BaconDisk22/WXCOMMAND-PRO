@@ -1,48 +1,42 @@
-"""Create a simple unsigned macOS WXCOMMAND-PRO.app bundle.
-
-Run on macOS after creating .venv:
-    python3 deploy/build_macos_app.py
-
-The launcher runs the repository's .venv and needs the repository to stay in
-place. It is NOT notarized or distributable as a standalone binary.
-"""
+"""Build a standalone x86_64 .app, ZIP and drag-and-drop DMG on Intel macOS."""
 from __future__ import annotations
 
-import plistlib
-import shlex
-import stat
+import os
 from pathlib import Path
+import platform
+import subprocess
+import sys
+import tempfile
 
 
 def build(root: Path) -> Path:
-    bundle = root / "dist" / "WXCOMMAND-PRO.app"
-    macos = bundle / "Contents" / "MacOS"
-    macos.mkdir(parents=True, exist_ok=True)
-    plist = {
-        "CFBundleName": "WXCOMMAND-PRO",
-        "CFBundleDisplayName": "WXCOMMAND-PRO",
-        "CFBundleIdentifier": "org.wxcommandpro.local",
-        "CFBundleExecutable": "WXCOMMAND-PRO",
-        "CFBundlePackageType": "APPL",
-        "CFBundleVersion": "1",
-    }
-    with (bundle / "Contents" / "Info.plist").open("wb") as file:
-        plistlib.dump(plist, file)
-    executable = macos / "WXCOMMAND-PRO"
-    script = f"""#!/bin/bash
-set -e
-cd {shlex.quote(str(root))}
-if [ ! -x .venv/bin/python ]; then
-  osascript -e 'display alert "WXCOMMAND-PRO virtual environment not found"'
-  exit 1
-fi
-open "http://127.0.0.1:8000/operator" >/dev/null 2>&1 &
-exec .venv/bin/python -m app.main
-"""
-    executable.write_text(script)
-    executable.chmod(executable.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    if sys.platform != 'darwin' or platform.machine() != 'x86_64':
+        raise RuntimeError('Build with x86_64 Python on an Intel macOS runner')
+    root = root.resolve()
+    env = dict(os.environ, PYINSTALLER_CONFIG_DIR=str(root / 'build/pyinstaller-cache'))
+    subprocess.run([sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
+                    str(root / 'packaging/macos.spec')], cwd=root, env=env, check=True)
+    bundle = root / 'dist/WXCOMMAND-PRO.app'
+    subprocess.run(['codesign', '--verify', '--deep', '--strict', str(bundle)], check=True)
+    # ditto preserves the bundle's symlinks, permissions and root directory.
+    archive = root / 'dist/WXCOMMAND-PRO-macOS-Intel.zip'
+    archive.unlink(missing_ok=True)
+    subprocess.run(['ditto', '-c', '-k', '--sequesterRsrc', '--keepParent', str(bundle), str(archive)], check=True)
+    dmg = root / 'dist/WXCOMMAND-PRO-macOS-Intel.dmg'
+    with tempfile.TemporaryDirectory(prefix='wxcommand-dmg-') as temp:
+        staging = Path(temp)
+        subprocess.run(['ditto', str(bundle), str(staging / bundle.name)], check=True)
+        (staging / 'Applications').symlink_to('/Applications')
+        (staging / 'Install.txt').write_text(
+            'Drag WXCOMMAND-PRO.app to Applications, then open it.\n'
+            'Use the WX menu-bar menu to open the dashboard or quit.\n'
+            'This prerelease is not Developer ID signed or notarized.\n'
+            'Radio hardware and target macOS compatibility require separate verification.\n')
+        subprocess.run(['hdiutil', 'create', '-ov', '-volname', 'WXCOMMAND-PRO',
+                        '-srcfolder', temp, '-format', 'UDZO', str(dmg)], check=True)
+    subprocess.run(['hdiutil', 'verify', str(dmg)], check=True)
     return bundle
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     print(build(Path(__file__).resolve().parent.parent))

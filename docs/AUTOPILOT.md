@@ -1,6 +1,6 @@
 # WXCOMMAND-PRO AutoPilot
 
-AutoPilot runs tests, dependency audits and build checks on pushes and pull requests, and once a week on Mondays. It also prepares unsigned macOS Intel launcher artifacts and a Raspberry Pi source archive. These are **CI artifacts**, not verified production installers.
+AutoPilot runs tests, dependency audits and build checks on pushes and pull requests, and once a week on Mondays. It also prepares standalone macOS Intel app ZIP and drag-and-drop DMG artifacts and a Raspberry Pi source archive. These are **CI artifacts**, not verified production installers.
 
 ## Workflow and automation
 - `.github/workflows/autopilot.yml`: Python 3.11–3.13 tests, smoke checks, pip-audit, macOS Intel bundle check, Raspberry Pi source archive, aggregate release gate.
@@ -11,8 +11,8 @@ AutoPilot runs tests, dependency audits and build checks on pushes and pull requ
 ## Important boundaries
 - A green CI run **does not** certify real radio connectivity, NWS/IPAWS end-to-end delivery, Pi startup, macOS Tahoe compatibility, or failover without duplicate transmissions.
 - AutoPilot does **not** automatically write arbitrary new features or fix failed tests. That requires a separately installed, explicitly authorized coding agent with its own workflow.
-- AutoPilot does **not** automatically merge or publish. Before enabling auto-merge, configure branch protection on `main` requiring the AutoPilot release gate and review of safety-critical changes. Do not bypass hardware verification for release tags.
-- A macOS `.app` generated here depends on its source checkout and virtual environment; it is unsigned and unnotarized. The Pi artifact is a source archive.
+- AutoPilot does **not** automatically merge. The separate `Publish successful builds` workflow publishes prereleases only from successful main-branch push runs, after revalidating their provenance. Before enabling auto-merge, configure branch protection on `main` requiring the AutoPilot release gate and review of safety-critical changes. Do not bypass hardware verification for release tags.
+- The macOS `.app` bundles Python and dependencies. CI validates Intel native libraries and runs offline HTTP/template/dependency checks from both archives with the checkout hidden and no Python on PATH. The bundle is ad-hoc signed, not Developer ID signed or notarized. The Pi artifact remains a source archive.
 - Never run synthetic emergency broadcasts on public channels.
 
 ## Initial activation

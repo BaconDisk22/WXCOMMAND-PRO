@@ -5,7 +5,7 @@
 | Platform | Install route | Validation required |
 | --- | --- | --- |
 | Raspberry Pi 4 | Python venv and `deploy/install_pi.sh` | Boot, USB permissions, restart, service recovery, SQLite restore |
-| Intel macOS | Python venv and `deploy/build_macos_app.py` | Finder launch, permissions, USB/BLE connectivity, browser opening |
+| Intel macOS | Standalone ZIP/DMG relocation, native dependency and offline HTTP checks | Finder launch on target OS, Gatekeeper/permissions, USB/BLE/TCP hardware connectivity, browser opening |
 | Linux desktop | Python venv | Startup, network binding, serial access |
 | Windows | Existing project packaging | Packaging and executable smoke test before distribution |
 
