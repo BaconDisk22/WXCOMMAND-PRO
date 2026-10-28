@@ -51,12 +51,8 @@ delivery if a transport times out after a radio actually transmitted.
 Leave disabled to preserve the existing broadcast-on-all-radios behavior.
 
 
-## macOS application bundle (unsigned)
-Run `python3 deploy/build_macos_app.py` on the Mac after installing the
-virtual environment. Double-click `dist/MeshWX.app` to start the server.
-The bundle is a local launcher tied to the checkout; it is **not** a signed,
-notarized or self-contained distribution. Confirm it works under your macOS
-privacy permissions before relying on it.
+## Standalone macOS application bundle
+Use the Intel DMG or app ZIP from Releases. The app bundles its runtime and no longer depends on this checkout. See [Mac packaging](MACOS_PACKAGING.md) for building and validation. Developer ID signing, notarization and physical-radio acceptance remain separate.
 
 ## Release verification
 The safe smoke check is `python -m app.smokecheck`. It imports the NWS,

@@ -26,20 +26,15 @@ The example service should not be exposed to the public Internet. Prefer
 localhost or a trusted network protected by access controls.
 
 ## Intel Mac (including Intel Tahoe)
-1. Install Python 3.11+ and check `python3 --version`.
-2. From the repository root, run
-   `python3 -m venv .venv` and
-   `.venv/bin/python -m pip install -r requirements.txt`.
-3. Run `.venv/bin/python -m app.smokecheck`.
-4. Build the local launcher with `python3 deploy/build_macos_app.py`.
-5. Open `dist/MeshWX.app`. The launcher uses the checkout's `.venv`;
-   moving or deleting the checkout breaks the app.
-6. Grant Bluetooth permission to the host process when prompted. For USB,
-   check `/dev/cu.*` devices and confirm the radio appears in Settings.
-7. Test with a radio on a dedicated test channel before enabling live alerts.
+1. Download the standalone Intel DMG from GitHub Releases.
+2. Drag `WXCOMMAND-PRO.app` to Applications and open it.
+3. The Operator Center opens in its own window. Closing it keeps the server running; click the Dock icon to reopen, ⌘Q to quit.
+4. Grant Bluetooth and local-network access when macOS requests it.
+5. Keep dry-run enabled until actual radios have been checked on a dedicated test channel.
 
-The app bundle is unsigned, unnotarized and not a self-contained installer.
-No compatibility claim is made until tested on the actual Mac.
+Python and dependencies are bundled. Settings remain in `~/Library/Application Support/WXCOMMAND-PRO` (existing MeshWX databases are still recognized), outside the app. Startup logs are in `~/Library/Logs/WXCOMMAND-PRO/desktop.log`.
+
+The bundle is ad-hoc signed, not Developer ID signed or notarized. Gatekeeper may require explicit approval through Privacy & Security. See [Mac packaging](MACOS_PACKAGING.md) for build instructions and verification limits.
 
 ## Updating
 1. Back up the database before changing versions.

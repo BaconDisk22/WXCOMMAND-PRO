@@ -48,30 +48,25 @@ jobs:
       - run: python -m pip_audit
 
   build-macos:
-    name: macOS Intel launcher smoke build
+    name: macOS Intel standalone app and DMG
     runs-on: macos-15-intel
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python3 -m venv .venv
-      - run: .venv/bin/python -m pip install -r requirements.txt
-      - run: .venv/bin/python deploy/build_macos_app.py
-      - name: Validate bundle metadata
-        run: |
-          test -x "dist/WXCOMMAND-PRO.app/Contents/MacOS/WXCOMMAND-PRO"
-          plutil -lint "dist/WXCOMMAND-PRO.app/Contents/Info.plist"
-      - name: Archive macOS launcher
-        run: |
-          # Archive before upload so the .app root and executable modes survive transport.
-          (cd dist && zip -qry WXCOMMAND-PRO-macOS-Intel.zip WXCOMMAND-PRO.app)
-          unzip -tq dist/WXCOMMAND-PRO-macOS-Intel.zip
+          architecture: x64
+      - run: python -m pip install -r packaging/requirements-macos.txt
+      - run: python deploy/build_macos_app.py
+      - name: Verify relocated ZIP and DMG without the checkout
+        run: python deploy/verify_macos_bundle.py
       - uses: actions/upload-artifact@v4
         with:
-          name: wxcommand-pro-macos-intel-launcher
-          path: dist/WXCOMMAND-PRO-macOS-Intel.zip
+          name: wxcommand-pro-macos-intel-standalone
+          path: |
+            dist/WXCOMMAND-PRO-macOS-Intel.zip
+            dist/WXCOMMAND-PRO-macOS-Intel.dmg
           if-no-files-found: error
 
   build-pi:

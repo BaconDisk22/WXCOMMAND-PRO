@@ -61,13 +61,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p assets
-          gh run download "$RUN_ID" -R "$REPO" -n wxcommand-pro-macos-intel-launcher -D mac-app
+          gh run download "$RUN_ID" -R "$REPO" -n wxcommand-pro-macos-intel-standalone -D mac-app
           gh run download "$RUN_ID" -R "$REPO" -n wxcommand-pro-pi-source -D pi
-          test -f mac-app/WXCOMMAND-PRO-macOS-Intel.zip
+          test -s mac-app/WXCOMMAND-PRO-macOS-Intel.zip
+          test -s mac-app/WXCOMMAND-PRO-macOS-Intel.dmg
           unzip -tq mac-app/WXCOMMAND-PRO-macOS-Intel.zip
           test -f pi/wxcommand-pro-pi-source.tar.gz
           # Publish the archive produced on the Intel runner without repacking it.
           cp mac-app/WXCOMMAND-PRO-macOS-Intel.zip assets/WXCOMMAND-PRO-macOS-Intel.zip
+          cp mac-app/WXCOMMAND-PRO-macOS-Intel.dmg assets/WXCOMMAND-PRO-macOS-Intel.dmg
           cp pi/wxcommand-pro-pi-source.tar.gz assets/WXCOMMAND-PRO-Raspberry-Pi-source.tar.gz
           (cd assets && sha256sum * > SHA256SUMS.txt)
 
@@ -86,4 +88,4 @@ jobs:
           fi
           gh release create "$TAG" assets/* -R "$REPO" --target "$SHA" \
             --title "WXCOMMAND-PRO validated build $RUN_ID" --prerelease \
-            --notes "Automated artifacts from successful AutoPilot run $RUN_ID on main at commit $SHA. macOS Intel launcher is unsigned and not hardware-verified. Raspberry Pi bundle is source plus installer, not a native binary. SHA256SUMS.txt lists checksums."
+            --notes "Automated artifacts from successful AutoPilot run $RUN_ID on main at commit $SHA. macOS Intel standalone app ZIP and drag-and-drop DMG bundle Python and dependencies. They are ad-hoc signed, not Developer ID signed or notarized. Physical radio hardware and macOS Tahoe 26.7.1 launch compatibility are not certified by CI. Raspberry Pi bundle is source plus installer, not a native binary. SHA256SUMS.txt lists checksums."

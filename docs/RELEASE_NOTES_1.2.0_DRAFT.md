@@ -10,7 +10,7 @@
 - Compact, advanced and monitor display modes; configurable widget visibility.
 - Radio connection history and opt-in backup failover improvements.
 - Scheduled SQLite backups with integrity checks.
-- Raspberry Pi systemd installation helper and local Intel Mac app launcher.
+- Raspberry Pi systemd installation helper and standalone Intel Mac app ZIP and drag-and-drop DMG.
 - Privacy-conscious diagnostic summary and improved installation guides.
 
 ## Security and operational notes
@@ -26,7 +26,7 @@
 - Mobile PWA lacks full offline functionality and complete app icons.
 - Guided wizard, notification persistence and advanced timeline filters
   are not fully implemented.
-- macOS bundle is unsigned, not notarized, and depends on the checkout.
+- macOS bundle includes its runtime and dependencies; it is ad-hoc signed, not Developer ID signed or notarized. Physical-radio and target-OS acceptance require separate testing.
 - Physical Meshtastic/MeshCore and restore testing remain outstanding.
 
 ## Before publishing

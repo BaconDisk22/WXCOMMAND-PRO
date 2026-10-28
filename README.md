@@ -48,7 +48,7 @@ Designed for radio enthusiasts, community mesh networks, and emergency communica
 | Operator Center | Radio health, alert history, broadcast activity, diagnostics, and display preferences |
 | Geographic awareness | Informational NWS warning polygon preview; not used to make transmission decisions |
 | Reliability | Dry-run mode, bounded payloads, operational logs, scheduled database backups |
-| Deployment | Raspberry Pi systemd setup helper and local macOS app launcher |
+| Deployment | Raspberry Pi systemd setup helper and standalone Intel macOS app and DMG |
 
 **Development status:** Active development. Phase 3 and Phase 4 changes are under review; features on those branches are not necessarily present in the stable main branch. Hardware compatibility and live transmission behavior must be validated for each installation.
 
@@ -77,13 +77,11 @@ For the Raspberry Pi service installer and restart procedures, see [Installation
 
 ### Intel macOS
 
-After setting up the same Python environment, run:
+Download the Intel `.dmg` from [Releases](https://github.com/BaconDisk22/WXCOMMAND-PRO/releases), open it, and drag **WXCOMMAND-PRO.app** to **Applications**. Open the app; the Operator Center appears in its own window, no web browser needed. Closing the window keeps alerts running in the background; click the Dock icon to bring it back, or press ⌘Q to quit.
 
-```bash
-python3 deploy/build_macos_app.py
-```
+The `.app` ZIP is also available. Both include Python and dependencies; no Python installation, Terminal, or source checkout is required to run them. These prereleases are **ad-hoc signed, not Developer ID signed or notarized**. macOS may require explicit approval in Privacy & Security. Hardware and target-OS acceptance remain separate from CI.
 
-Open `dist/WXCOMMAND-PRO.app`. This is a **local unsigned launcher**, not a notarized standalone distribution. It depends on the repository and its Python environment remaining in place.
+For source builds and verification details, see [Mac packaging](docs/MACOS_PACKAGING.md).
 
 ### Before enabling radio broadcasts
 
