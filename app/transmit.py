@@ -145,7 +145,17 @@ class MeshtasticTransmitter(Transmitter):
 
     @property
     def connected(self) -> bool:
-        return self._iface is not None
+        iface = self._iface
+        if iface is None:
+            return False
+        # When the link dies the library's reader thread exits and clears
+        # isConnected, but the interface object survives, so its presence alone
+        # would report a powered-off radio as connected indefinitely.
+        link = getattr(iface, "isConnected", None)
+        if link is not None and not link.is_set():
+            return False
+        reader = getattr(iface, "_rxThread", None)
+        return reader is None or reader.is_alive()
 
     async def read_channels(self) -> list:
         if self._iface is None:
@@ -432,8 +442,13 @@ class TransmitManager:
                 for t in self._transports.values():
                     if not t.enabled or not t.target:
                         continue
-                    if t.tx is not None and not t.tx.connected:
+                    if t.connected and t.tx is not None and not t.tx.connected:
                         t.connected = False
+                        t.error = "link lost"
+                        self._connection_history.append(
+                            {"radio": t.name, "event": "lost", "target": t.target})
+                        self._db.add_event("WARN", "%s link lost (%s)" % (t.label, t.target))
+                        logger.warning("%s link lost at %s", t.name, t.target)
                     if not t.connected:
                         if asyncio.get_running_loop().time() < self._retry_after.get(t.name, 0):
                             continue
