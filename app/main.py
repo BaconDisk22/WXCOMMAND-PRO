@@ -4,10 +4,13 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import secrets
+from urllib.parse import urlsplit
 from pathlib import Path
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 from .config import load_bootstrap
 from .db import Database
@@ -122,7 +125,29 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="mesh-wx", lifespan=lifespan)
+    app = FastAPI(title="WXCOMMAND-PRO", lifespan=lifespan)
+
+    @app.middleware("http")
+    async def protect_management_requests(request: Request, call_next):
+        if request.method not in ("GET", "HEAD", "OPTIONS"):
+            origin = request.headers.get("origin")
+            if origin:
+                parsed = urlsplit(origin)
+                if parsed.scheme not in ("http", "https") or parsed.netloc.lower() != request.headers.get("host", "").lower():
+                    return JSONResponse({"detail": "Cross-origin write denied"}, status_code=403)
+            elif request.headers.get("sec-fetch-site") == "cross-site":
+                return JSONResponse({"detail": "Cross-site write denied"}, status_code=403)
+
+        host = load_bootstrap().http_host
+        if host not in ("127.0.0.1", "::1", "localhost"):
+            configured = os.environ.get("WXCOMMAND_API_TOKEN", "")
+            if not configured:
+                return JSONResponse({"detail": "Remote access disabled: configure WXCOMMAND_API_TOKEN"}, status_code=503)
+            supplied = request.headers.get("x-wxcommand-token", "")
+            if not secrets.compare_digest(configured, supplied):
+                return JSONResponse({"detail": "Unauthorized"}, status_code=401)
+        return await call_next(request)
+
     app.include_router(router)
     app.include_router(bluetooth_router)
     app.include_router(radio_tools_router)

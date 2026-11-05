@@ -28,4 +28,17 @@ async def test_preferences_round_trip():
     request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(db=DB())))
     await save_preferences(request, Preferences(compact=True, advanced=True, monitor=False))
     result = await preferences(request)
-    assert result == {"compact": True, "advanced": True, "monitor": False}
+    assert result == {"compact": True, "advanced": True, "monitor": False, "show_radios": True, "show_activity": True, "show_weather": True, "show_map": True}
+
+
+def test_operator_notifications():
+    from app.web.operator import build_notifications
+    alerts = build_notifications([{"enabled": True, "connected": False}], "error timeout", 6)
+    assert any(a["level"] == "critical" for a in alerts)
+    assert any("polling" in a["message"].lower() for a in alerts)
+    assert any("queue" in a["message"].lower() for a in alerts)
+
+
+def test_operator_notifications_healthy():
+    from app.web.operator import build_notifications
+    assert build_notifications([{"enabled": True, "connected": True}], "ok", 0) == []

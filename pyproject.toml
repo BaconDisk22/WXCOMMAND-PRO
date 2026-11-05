@@ -1,15 +1,15 @@
 [project]
-name = "meshwx"
+name = "wxcommand-pro"
 version = "1.1.2"
-description = "Poll NWS weather alerts and broadcast them over Meshtastic and/or MeshCore radios"
+description = "Self-hosted weather intelligence and mesh radio command center for Meshtastic and MeshCore"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "BrokenSignal" }]
+authors = [{ name = "WXCOMMAND-PRO Contributors" }]
 keywords = ["meshtastic", "meshcore", "nws", "weather", "alerts", "emergency", "lora"]
 
 [project.urls]
-Homepage = "https://brokensignal.tv/MeshWX/"
+Homepage = "https://github.com/BaconDisk22/WXCOMMAND-PRO"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

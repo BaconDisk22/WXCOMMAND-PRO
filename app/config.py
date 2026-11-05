@@ -10,7 +10,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-APP_DIRNAME = "MeshWX"
+APP_DIRNAME = "WXCOMMAND-PRO"
 
 
 def default_data_dir() -> Path:
@@ -33,7 +33,7 @@ def default_data_dir() -> Path:
     if sys.platform == "darwin":
         return Path.home() / "Library" / "Application Support" / APP_DIRNAME
     base = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local" / "share")
-    return Path(base) / "mesh-wx"
+    return Path(base) / "wxcommand-pro"
 
 
 @dataclass(frozen=True)
@@ -47,7 +47,8 @@ def load_bootstrap() -> BootstrapConfig:
     db_path = os.environ.get("MESH_WX_DB")
     if not db_path:
         data_dir = default_data_dir()
-        db_path = str(data_dir / "mesh-wx.db")
+        legacy = (Path.home() / "Library" / "Application Support" / "MeshWX" / "mesh-wx.db") if sys.platform == "darwin" else (Path.home() / ".local" / "share" / "mesh-wx" / "mesh-wx.db") if not sys.platform.startswith("win") else Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "MeshWX" / "mesh-wx.db"
+        db_path = str(legacy if legacy.exists() and not (data_dir / "wxcommand-pro.db").exists() else data_dir / "wxcommand-pro.db")
     # Make sure the parent directory exists so SQLite can create the file.
     parent = Path(db_path).expanduser().parent
     try:
@@ -55,7 +56,7 @@ def load_bootstrap() -> BootstrapConfig:
     except OSError:
         pass
     return BootstrapConfig(
-        http_host=os.environ.get("MESH_WX_HOST", "0.0.0.0"),
+        http_host=os.environ.get("MESH_WX_HOST", "127.0.0.1"),
         http_port=int(os.environ.get("MESH_WX_PORT", "8000")),
         db_path=str(Path(db_path).expanduser()),
     )
@@ -103,7 +104,7 @@ BURST_GAP_SECONDS = 30
 # Where this app lives, for the "Check for updates" button in Settings. The
 # check hits GitHub's public releases API (unauthenticated) and compares the
 # latest published (non-prerelease) tag against the running __version__.
-GITHUB_REPO = "BrokenSignal/MeshWX"
+GITHUB_REPO = "BaconDisk22/WXCOMMAND-PRO"
 GITHUB_LATEST_RELEASE_API = "https://api.github.com/repos/%s/releases/latest" % GITHUB_REPO
 GITHUB_RELEASES_URL = "https://github.com/%s/releases" % GITHUB_REPO
 

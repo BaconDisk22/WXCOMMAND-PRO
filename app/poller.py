@@ -12,6 +12,7 @@ import logging
 from datetime import datetime, timezone
 
 from .config import POLL_INTERVAL_MIN, POLL_HARD_TIMEOUT
+from .alert_freshness import alert_is_expired
 from .dedupe import decide
 from .filters import FilterRules
 from .formatter import build_mesh_text
@@ -140,6 +141,11 @@ class WxPoller:
     async def _process(self, feature, rules, tz_name, channel, dry_run) -> None:
         alert = Alert.from_feature(feature)
         if not alert.nws_id:
+            return
+        # Do not queue warnings that NWS has already marked expired.
+        # Preserve cancellation messages, which can remain relevant to operators.
+        if alert.message_type != "Cancel" and alert_is_expired(alert.expires):
+            logger.info("skipping expired NWS alert %s", alert.nws_id)
             return
         decision = decide(alert, rules, self._db.get_state)
 

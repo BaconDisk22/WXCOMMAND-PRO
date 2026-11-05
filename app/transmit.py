@@ -16,6 +16,7 @@ from collections import deque
 from dataclasses import dataclass
 
 from .config import BURST_GAP_SECONDS, REPEAT_GAP_SECONDS, QUEUE_MAX, MAX_PAYLOAD_BYTES
+from .alert_priority import is_urgent_weather
 
 
 class TxUnsent(Exception):
@@ -544,7 +545,20 @@ class TransmitManager:
             oldest = lane[0] if lane else None
             if oldest is not None and oldest.on_result is not None:
                 self._safe_result(oldest.on_result, False, "dropped (queue full)")
-        lane.append(QueueItem(text=text, on_test=on_test, log_tx=log_tx, on_result=on_result))
+        item = QueueItem(text=text, on_test=on_test, log_tx=log_tx, on_result=on_result)
+        # Promote urgent live weather warnings ahead of routine queued weather.
+        # Never reorder IPAWS/test traffic, and preserve FIFO among urgent alerts.
+        if lane is self._queue and is_urgent_weather(text):
+            if dropped:
+                lane.popleft()  # deque.insert raises when maxlen is reached
+            position = 0
+            for existing in lane:
+                if not is_urgent_weather(existing.text):
+                    break
+                position += 1
+            lane.insert(position, item)
+        else:
+            lane.append(item)
         self._queue_event.set()
         if dropped:
             logger.warning("transmit queue full; dropped oldest")

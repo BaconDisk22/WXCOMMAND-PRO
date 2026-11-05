@@ -24,10 +24,10 @@ def backup_once(db_path: Path, directory: Path, keep: int = 7) -> Path:
     destination = directory / ("meshwx-" + datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f") + ".db")
     try:
         backup(db_path, destination)
-        with sqlite3.connect(destination) as conn:
-            verdict = conn.execute("PRAGMA quick_check").fetchone()[0]
-            if verdict != "ok":
-                raise RuntimeError("backup integrity check failed: " + str(verdict))
+        with sqlite3.connect(destination) as connection:
+            result = connection.execute("PRAGMA quick_check").fetchone()[0]
+        if result != "ok":
+            raise RuntimeError("SQLite backup integrity check failed")
     except Exception:
         destination.unlink(missing_ok=True)
         raise

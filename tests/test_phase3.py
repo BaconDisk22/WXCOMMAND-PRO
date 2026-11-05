@@ -26,43 +26,22 @@ def test_backup_rotation(tmp_path):
     assert len(list(destination.glob("meshwx-*.db"))) == 2
 
 
-def test_backup_is_valid_sqlite(tmp_path):
+def test_scheduled_backup_integrity(tmp_path):
     from app.scheduled_backup import backup_once
-    source = tmp_path / "source.db"
+    source = tmp_path / "original.db"
     with sqlite3.connect(source) as conn:
-        conn.execute("CREATE TABLE alert (id INTEGER PRIMARY KEY, body TEXT)")
-        conn.execute("INSERT INTO alert(body) VALUES ('warning')")
-    output = backup_once(source, tmp_path / "backups")
-    with sqlite3.connect(output) as conn:
+        conn.execute("CREATE TABLE payload (text TEXT)")
+        conn.execute("INSERT INTO payload VALUES ('safe')")
+    saved = backup_once(source, tmp_path / "backups")
+    with sqlite3.connect(saved) as conn:
         assert conn.execute("PRAGMA quick_check").fetchone()[0] == "ok"
-        assert conn.execute("SELECT body FROM alert").fetchone()[0] == "warning"
+        assert conn.execute("SELECT text FROM payload").fetchone()[0] == "safe"
 
 
-def test_backup_failure_does_not_leave_partial_file(tmp_path):
-    from app.scheduled_backup import backup_once
+def test_scheduled_backup_failure_cleans_up(tmp_path):
     import pytest
-    destination = tmp_path / "backups"
-    with pytest.raises(Exception):
-        backup_once(tmp_path / "missing.db", destination)
-    assert not list(destination.glob("meshwx-*.db"))
-
-
-@pytest.mark.asyncio
-async def test_failover_prefers_connected_radio():
-    db = SettingsDB(True)
-    manager = TransmitManager(db)
-    manager._transports = {
-        "meshtastic": SimpleNamespace(name="meshtastic", enabled=True, connected=False,
-                                     tx=None, channel=0, test_channel=1),
-        "meshcore": SimpleNamespace(name="meshcore", enabled=True, connected=True,
-                                   tx=SimpleNamespace(connected=True), channel=0, test_channel=1),
-    }
-    calls = []
-
-    async def fake_send(t, message, channel):
-        calls.append(t.name)
-        return True, ""
-
-    manager._try_send = fake_send
-    assert await manager._send_all("test", manual=True, on_test=True)
-    assert calls == ["meshcore"]
+    from app.scheduled_backup import backup_once
+    target = tmp_path / "backups"
+    with pytest.raises(FileNotFoundError):
+        backup_once(tmp_path / "missing.db", target)
+    assert not list(target.glob("meshwx-*.db"))

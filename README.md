@@ -1,265 +1,121 @@
-<h1 align="center">MeshWX</h1>
+<div align="center">
 
-<p align="center">
-  <b>Off-grid weather warnings.</b> MeshWX watches the National Weather Service and
-  broadcasts the alerts that matter over your <a href="https://meshtastic.org/">Meshtastic</a>
-  and/or <a href="https://meshcore.co.uk/">MeshCore</a> radios, so your mesh keeps getting
-  tornado, flood, and severe-storm warnings when the cell network and internet are gone.
-</p>
+# WXCOMMAND-PRO
 
-<p align="center">
-  Self-hosted · one small web app · runs on a Raspberry Pi, a Windows PC, or Docker · no account, no cloud.
-</p>
+### Weather Intelligence. Mesh Communications. One Command Center.
 
-<p align="center">
-  <b>Status: v1.0.0.</b> Verified on a Heltec V3 for Meshtastic and MeshCore, over USB and over the network.
-</p>
+**Self-hosted weather and public safety alert monitoring for Meshtastic and MeshCore networks.**
+
+Monitor National Weather Service alerts, review radio connectivity, and manage controlled broadcasts from a single web interface.
+
+**Raspberry Pi · Linux · macOS · Meshtastic · MeshCore**
+
+</div>
 
 ---
 
-<p align="center">
-  <img src="docs/dashboard.png" alt="MeshWX dashboard: live broadcaster status, recent alerts, and node health" width="900">
-</p>
+## Screenshots
 
-> [!NOTE]
-> **Built for the whole mesh ecosystem.** MeshWX speaks the standard Meshtastic and MeshCore
-> serial and network protocols, so it is designed to run on the full range of boards those
-> firmwares support (Heltec, LILYGO, RAK, Station G2, Seeed, and more). It is verified today
-> on the Heltec V3 for both Meshtastic and MeshCore, over USB and over the network. As it is
-> confirmed on more hardware the list will grow, so please report how yours does via
-> [Issues](../../issues).
+The screenshots below are generated automatically from the **simulated demonstration dashboard**, not live weather or radio hardware. On successful pushes to `main`, GitHub Actions refreshes the images in `docs/screenshots/`.
 
-> [!WARNING]
-> **MeshWX is a supplemental tool, not a certified warning system.** It depends on your
-> internet connection to reach the NWS API, on your hardware, and on LoRa propagation.
-> Do **not** rely on it as your only source of life-safety alerts. Always keep an
-> official channel: a NOAA Weather Radio, wireless emergency alerts, or local sirens.
-> Test it in **dry-run mode** before you trust it, and review the settings for your area.
+### Normal operations
+![WXCOMMAND-PRO demo showing normal operations](docs/screenshots/wxcommand-pro-normal.png)
 
-## Why it exists
+### Severe weather simulation
+![WXCOMMAND-PRO demo showing simulated severe weather warnings](docs/screenshots/wxcommand-pro-storm.png)
 
-When a hurricane or flood takes out the towers, a LoRa mesh often keeps working, but the
-mesh has no way to *know* a warning was issued. MeshWX bridges that gap: it polls the
-[NWS alerts API](https://www.weather.gov/documentation/services-web-api), decides what's
-worth sending, formats it to fit a LoRa packet, and transmits it to everyone on your
-channel. Built after living through Hurricane Helene's comms blackout.
+### Radio outage simulation
+![WXCOMMAND-PRO demo showing simulated radio outage](docs/screenshots/wxcommand-pro-offline.png)
 
-## Features
+Run WXCOMMAND-PRO locally and open `/demo` to explore the scenarios. This demonstration is read-only and does not transmit over radios.
 
-- **Dual radio, side by side.** Run Meshtastic, MeshCore, or **both at once**: every
-  alert goes to each enabled radio on its own channel.
-- **NOAA weather + FEMA IPAWS.** Broadcast NWS weather warnings and, optionally, non-weather
-  public safety alerts from IPAWS (AMBER, civil emergency, evacuation, and more), scoped to
-  your counties.
-- **Dead-simple setup.** Pick your state and check your counties; the NWS zones populate
-  automatically. Choose which alerts to send from checklists, not cryptic codes to type.
-- **Smart filtering.** Broadcast all Warnings plus Tornado Watch by default; add other
-  Watches/Advisories à la carte.
-- **No spam.** Never rebroadcasts the same alert; sends one concise *update* when a warning
-  materially changes and a *cancellation* when it clears. Old state auto-expires.
-- **Fits a LoRa packet.** Alerts are trimmed to ≤195 bytes, e.g.
-  `[WX] Tornado Warning: Charleston +2 more until 8:45 PM EDT`.
-- **Dry-run by default.** Automated alerts are logged, not transmitted, until you flip it on.
-- **A real dashboard.** Live radio status, recent alerts, 7-day activity, transmit log,
-  and a per-radio **Send test** button to key up each radio on the bench.
+## Overview
 
-## Install
+WXCOMMAND-PRO is a self-hosted weather monitoring and mesh radio broadcast platform. It connects public alert information with compatible off-grid radio networks, helping operators maintain situational awareness and distribute concise alerts over LoRa.
 
-Pick the one that matches your box. All three run the exact same app.
+Designed for radio enthusiasts, community mesh networks, and emergency communications experimentation, the project emphasizes **operator control, clear status reporting, and cautious transmission defaults**.
 
-### 🐳 Docker (any Linux host, incl. 64-bit Raspberry Pi)
+> [!IMPORTANT]
+> **Supplemental information only.** WXCOMMAND-PRO is not an official, certified, or guaranteed emergency warning system. It requires internet access to retrieve new alerts, and radio delivery depends on hardware and network conditions. Continue using NOAA Weather Radio, Wireless Emergency Alerts, and local official warning channels.
+
+## Capabilities
+
+| Area | Capabilities |
+| --- | --- |
+| Weather intelligence | NWS alert polling, configurable coverage, event filtering, update handling, and duplicate suppression |
+| Public safety | Experimental IPAWS integration with dedicated configuration and test safeguards |
+| Mesh radios | Meshtastic and MeshCore transport support, connection status, reconnection logic, and optional failover |
+| Operator Center | Radio health, alert history, broadcast activity, diagnostics, and display preferences |
+| Geographic awareness | Informational NWS warning polygon preview; not used to make transmission decisions |
+| Reliability | Dry-run mode, bounded payloads, operational logs, scheduled database backups |
+| Deployment | Raspberry Pi systemd setup helper and standalone Intel macOS app and DMG |
+
+**Development status:** Active development. Phase 3 and Phase 4 changes are under review; features on those branches are not necessarily present in the stable main branch. Hardware compatibility and live transmission behavior must be validated for each installation.
+
+## Quick start
+
+### Raspberry Pi / Linux
+
+1. Install Python 3.11 or newer and Git.
+2. Clone the repository and open its directory.
+3. Create an environment and install dependencies:
 
 ```bash
-docker run -d --name meshwx \
-  -p 8110:8000 \
-  -v meshwx-data:/data \
-  --device-cgroup-rule='c 188:* rmw' \
-  --device-cgroup-rule='c 166:* rmw' \
-  -v /dev:/dev \
-  --restart unless-stopped \
-  ghcr.io/brokensignal/meshwx:latest
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
 ```
 
-Or clone the repo and `docker compose up -d`. Then open `http://<host>:8110`.
-The `--device` rules + `/dev` mount let the container reach any USB serial radio without
-pinning a device path (they renumber on replug). See the compose file for details.
-
-### 🥧 Raspberry Pi / Linux (native, no Docker)
-
-64-bit Raspberry Pi OS, or any Debian / Ubuntu. Plug in your radio, then run **one command**:
+4. Start WXCOMMAND-PRO:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/BrokenSignal/MeshWX/main/install.sh | sudo bash
+.venv/bin/python -m app.main
 ```
 
-That is the whole install. It installs everything it needs (Python, venv, pip, git), puts
-MeshWX in `/opt/MeshWX`, sets up a virtualenv, adds you to the `dialout` group for serial
-access, and starts a `systemd` service on boot. Open `http://<this-host>:8110`.
+5. Open the local dashboard using the host and port configured for your installation. The Phase 4 branch defaults to **127.0.0.1:8000** for safety.
 
-**To update, or if an install ever goes wrong, run the exact same command again.** It pulls
-the latest, repairs a stale or broken copy, and reinstalls. There is nothing else to
-remember and no folder to clean up.
+For the Raspberry Pi service installer and restart procedures, see [Installation and Operations](docs/INSTALLATION.md).
 
-<details><summary>Advanced: clone and run the installer manually</summary>
+### Intel macOS
 
-```bash
-git clone https://github.com/BrokenSignal/MeshWX.git
-cd MeshWX && sudo ./packaging/install-linux.sh
-```
+Download the Intel `.dmg` from [Releases](https://github.com/BaconDisk22/WXCOMMAND-PRO/releases), open it, and drag **WXCOMMAND-PRO.app** to **Applications**. Open the app; the Operator Center appears in its own window, no web browser needed. Closing the window keeps alerts running in the background; click the Dock icon to bring it back, or press ⌘Q to quit.
 
-The installer still handles all prerequisites and self-updates on each run.
-</details>
+The `.app` ZIP is also available. Both include Python and dependencies; no Python installation, Terminal, or source checkout is required to run them. These prereleases are **ad-hoc signed, not Developer ID signed or notarized**. macOS may require explicit approval in Privacy & Security. Hardware and target-OS acceptance remain separate from CI.
 
-Tested on 64-bit Raspberry Pi OS Bookworm and Ubuntu (Python 3.11 through 3.14): every
-dependency installs as a prebuilt wheel, so no compiler or Rust toolchain is needed.
-Manage with `sudo systemctl restart mesh-wx` and `journalctl -u mesh-wx -f`.
+For source builds and verification details, see [Mac packaging](docs/MACOS_PACKAGING.md).
 
-### 🪟 Windows
+### Before enabling radio broadcasts
 
-1. Download `MeshWX-windows-*.zip` from the [Releases](../../releases) page.
-2. Unzip anywhere and run **MeshWX.exe**.
-3. Your browser opens to the dashboard automatically. Keep the console window open;
-   close it to stop MeshWX.
+1. Configure the NWS contact information and the areas to monitor.
+2. Connect a compatible Meshtastic or MeshCore radio.
+3. Confirm the intended live and test channels.
+4. Leave **dry-run enabled** while reviewing alert decisions.
+5. Verify behavior on a dedicated test channel before enabling live transmissions.
 
-No Python install required. Windows may warn about an unrecognized app the first time:
-"More info → Run anyway" (the build is unsigned).
+Do not expose the dashboard to the public internet without reviewing authentication and access controls.
 
-## First run
+## Operator Center
 
-1. Open the dashboard, go to **Settings**.
-2. **NOAA → NWS contact**: set this to your email address. The NWS API
-   [requires a contact string](https://www.weather.gov/documentation/services-web-api)
-   in every request; leaving the default placeholder can get you rate-limited or blocked.
-3. **Coverage**: pick your state, check your counties.
-4. **What to broadcast**: leave *All Warnings* on; add any watches/advisories you want.
-5. **Radios**: enable Meshtastic and/or MeshCore. For each, choose **USB** or **network (IP/TCP)**, click **Connect and load channels**, then pick which channel carries live alerts and which carries test messages.
-6. Save, then go to **Troubleshoot → Send test** to confirm each radio actually transmits.
-7. When you're confident, turn **dry-run off** on the dashboard to go live.
+The Phase 4 development branch includes an Operator Center at `/operator` with radio status, system health, activity history, diagnostic summaries, and a simplified informational alert map.
 
-<p align="center">
-  <a href="docs/settings-1.png"><img src="docs/settings-1.png" alt="MeshWX Settings: coverage area and which alerts to broadcast" width="47%"></a>
-  <a href="docs/settings-2.png"><img src="docs/settings-2.png" alt="MeshWX Settings: radios, channels, and general options" width="47%"></a>
-</p>
-<p align="center"><sub>The Settings page: pick counties and alert types (left), set up radios and channels (right). Click either to enlarge.</sub></p>
+The map is **not** a precise GIS tool and does not determine which alerts are broadcast. Some planned functions, including a complete setup wizard, persistent notification history, and offline PWA support, remain unfinished.
 
-### Radio notes
+## Documentation
 
-- **Meshtastic**: any Meshtastic node, over **USB serial** or over the **network (TCP/IP)**,
-  for example a WiFi connected node at its IP address (optionally `host:port`). On USB the
-  board can renumber its port on replug; leave the port blank to auto-discover, or set it.
-- **MeshCore**: flash the board with the **USB (companion)** firmware, *not* repeater
-  firmware. Repeater firmware exposes no serial API, so MeshWX can't drive it.
-### Confirmed radios
+- [Installation and Operations](docs/INSTALLATION.md)
+- [Phase 3 Setup and Validation](docs/PHASE3_SETUP.md)
+- [Release Readiness Checklist](docs/RELEASE_CHECKLIST.md)
+- [Draft Release Notes](docs/RELEASE_NOTES_1.2.0_DRAFT.md)
 
-Hardware verified working with MeshWX, and over which connection. MeshWX speaks the standard
-Meshtastic and MeshCore protocols, so other boards on those firmwares are expected to work;
-this list grows as they are confirmed.
+## Development and releases
 
-| Radio | Protocol | USB | WiFi (TCP/IP) |
-|---|---|:---:|:---:|
-| Heltec V3 | Meshtastic | ✅ | ✅ |
-| Heltec V3 | MeshCore | ✅ | ⬜ |
-| Thinknode M7 | Meshtastic | ✅ | ⚠️ |
-| RAK WisMesh Pocket V2 | Meshtastic | ✅ | ⬜ |
-| Seeed Studio T1000-E | Meshtastic | ✅ | ⬜ |
-| Seeed Studio MeshTracker X1 | Meshtastic | ✅ | ⬜ |
-| Seeed Studio MeshTracker X1 | MeshCore | ✅ | ⬜ |
+**Current published version is not being changed by this branding update.** Version 1.2.0 remains a draft until CI, security, platform, and radio acceptance checks are complete.
 
-Key: ✅ confirmed reliable, ⚠️ works but the link is unreliable, ⬜ not tested yet.
+Issues and contributions are welcome. Include the operating system, radio hardware, connection method, and relevant sanitized logs when reporting problems. Avoid posting device credentials or private identifiers.
 
-### Channels: live vs. test
+## Independence and trademarks
 
-MeshWX keeps testing off the air people are actually watching:
+WXCOMMAND-PRO is an independent project. It is **not affiliated with, endorsed by, or an official product of** Meshtastic, MeshCore, NOAA, the National Weather Service, or FEMA. All respective names and trademarks belong to their owners.
 
-- **Channel 0 is the live channel**: real NWS alerts broadcast there (each radio's
-  alert channel, index 0 by default).
-- **Channel 1 is the test channel**: the per-radio **Test** buttons transmit there, so
-  testing never clutters the live alert channel. The manual-send page broadcasts on the
-  **live** channel instead, since those are real messages you compose for people.
+---
 
-Both are set in **Settings** (per-radio alert channel, plus a per-radio **Test channel**).
-Point your listening node at channel 0 for real alerts, or channel 1 to watch tests.
-
-### Verified sends
-
-LoRa channel broadcasts are unacknowledged, so a radio can report success without actually
-transmitting. MeshWX confirms each send against the radio's own transmit counter: a message
-is logged **sent** only when the radio really keyed up. A send that does not go out is
-retried and then logged **failed**, so a miss shows in the transmit log rather than being
-silently lost.
-
-### IPAWS alerts (FEMA)
-
-Alongside NOAA weather, MeshWX can broadcast **non-weather public safety alerts** from FEMA's
-IPAWS feed: AMBER Alerts, civil emergencies, evacuations, shelter-in-place, law enforcement,
-911/utility outages, hazardous materials, and local emergency management messages. Enable it
-and pick which types to broadcast in **Settings**; the **IPAWS History** page shows what has
-come through.
-
-- **Scoped to your area** automatically, using the same counties you selected for weather.
-- **Real alerts go on your live channel**; optional test/exercise messages go on the test
-  channel (tagged `[IPAWS TEST]`) so you can confirm the mesh during quiet stretches.
-- Weather alerts already carried by NOAA are not duplicated, and cancellations are broadcast
-  so people know when an order is lifted.
-
-## Configuration
-
-Only three settings come from the environment (needed to boot). Everything else lives in
-the UI and the database.
-
-| Env var        | Default (native)                         | Purpose            |
-| -------------- | ---------------------------------------- | ------------------ |
-| `MESH_WX_PORT` | `8000` (`8110` for the systemd service)  | HTTP port          |
-| `MESH_WX_HOST` | `0.0.0.0`                                | HTTP bind address  |
-| `MESH_WX_DB`   | per-OS data dir (see below)              | SQLite file path   |
-
-The default database location when `MESH_WX_DB` is unset:
-`/data` in Docker · `%LOCALAPPDATA%\MeshWX` on Windows ·
-`~/Library/Application Support/MeshWX` on macOS · `~/.local/share/mesh-wx` on Linux.
-
-## Development
-
-```bash
-python -m venv .venv && . .venv/bin/activate
-pip install -r requirements-dev.txt
-pytest                 # unit tests (filter / formatter / dedupe / poller)
-python -m app.main     # http://localhost:8000
-```
-
-Stack: FastAPI + Uvicorn, server-rendered Jinja templates + htmx, SQLite. No build step.
-The filter, formatter (byte-cap), and dedupe logic are covered by unit tests backed by
-captured NWS alert JSON fixtures under `tests/fixtures/`, with no serial/network deps.
-
-## Keep it running when the grid goes down
-
-MeshWX only helps if it is still up when the weather turns bad, which is exactly
-when grid power and internet tend to fail. The mesh side keeps relaying on its own,
-but MeshWX itself needs two things to *know* an alert was issued and push it out:
-power, and a path to the National Weather Service. Plan for both.
-
-- **Power: run it on battery, solar, or a UPS.** A Raspberry Pi and a LoRa radio
-  draw very little, so a small solar panel with a battery, or even a modest UPS, can
-  keep MeshWX broadcasting for hours or days after the power drops. Put your listening
-  nodes on backup power too, since a warning nobody's radio can receive helps no one.
-- **Internet: use a resilient link like Starlink.** MeshWX polls the NWS over the
-  internet, so if your cable or fiber dies with the grid, it goes quiet. A satellite
-  link such as Starlink, on its own battery or solar, keeps alerts flowing when
-  terrestrial service is down.
-- **Know the limit.** With no internet and no backup path, MeshWX cannot fetch new
-  alerts. It is a bridge from the NWS to your mesh, not a weather source of its own.
-  Keep a NOAA Weather Radio as the offline fallback.
-
-## Credits
-
-Thanks to the people helping make MeshWX real:
-
-- **Matthew Crook (W1MRC)**: testing and outreach.
-
-More hands are welcome. If you test MeshWX, help spread the word, or run it on your own
-mesh, open an [issue](../../issues) or pull request and you'll be added here.
-
-## License
-
-[MIT](LICENSE). Free to use, modify, and share. Contributions welcome.
-
-<p align="center"><sub>Developed by <a href="https://brokensignal.tv/MeshWX/">BrokenSignal</a></sub></p>
+<div align="center"><strong>WXCOMMAND-PRO</strong><br>Weather Intelligence · Mesh Radio Operations · Operator Control</div>
