@@ -104,3 +104,15 @@ async def test_failover_uses_second_radio_if_first_cannot_send():
     assert len(first.calls) == 1
     assert len(second.calls) == 1
     assert len(db.logs) == 2
+
+
+@pytest.mark.asyncio
+async def test_failover_tries_connected_backup_before_disconnected_primary():
+    db = FakeDb(failover=True)
+    primary, backup = FakeRadio(), FakeRadio()
+    down = FakeTransport("meshtastic", primary)
+    down.connected = False
+    tx = manager(db, down, FakeTransport("meshcore", backup))
+    assert await tx._send_all("test", manual=False)
+    assert backup.calls == [("test", 0)]
+    assert primary.calls == []

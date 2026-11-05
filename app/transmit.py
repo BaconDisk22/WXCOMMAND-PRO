@@ -689,6 +689,11 @@ class TransmitManager:
             failover_setting = self._db.get_setting("radio_failover_enabled", False)
             failover = (failover_setting.lower() in ("true", "1", "yes", "on")
                         if isinstance(failover_setting, str) else bool(failover_setting))
+            # Prioritize a connected radio when failover is enabled, reducing
+            # delays if the configured primary has already lost its link.
+            if failover:
+                enabled.sort(key=lambda t: not (
+                    t.connected and t.tx is not None and t.tx.connected))
             for t in enabled:
                 ch = t.test_channel if use_test else t.channel
                 ok, err = await self._try_send(t, text, ch)
