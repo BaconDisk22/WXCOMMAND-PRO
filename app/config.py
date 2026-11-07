@@ -104,7 +104,7 @@ BURST_GAP_SECONDS = 30
 # Where this app lives, for the "Check for updates" button in Settings. The
 # check hits GitHub's public releases API (unauthenticated) and compares the
 # latest published (non-prerelease) tag against the running __version__.
-GITHUB_REPO = "BaconDisk22/WXCOMMAND-PRO"
+GITHUB_REPO = "TheLogsAreScreaming/WXCOMMAND-PRO"
 GITHUB_LATEST_RELEASE_API = "https://api.github.com/repos/%s/releases/latest" % GITHUB_REPO
 GITHUB_RELEASES_URL = "https://github.com/%s/releases" % GITHUB_REPO
 
