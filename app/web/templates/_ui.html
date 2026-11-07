@@ -1,0 +1,27 @@
+{#- Shared UI macros. Import with: {% from "_ui.html" import icon, badge, empty %} -#}
+
+{% macro icon(name, cls="") -%}
+<svg class="icon {{ cls }}" aria-hidden="true" focusable="false"><use href="#i-{{ name }}"/></svg>
+{%- endmacro %}
+
+{% macro badge(text, tone="", plain=False) -%}
+<span class="badge {{ tone }}{{ ' plain' if plain else '' }}">{{ text }}</span>
+{%- endmacro %}
+
+{% macro empty(title, body="", name="inbox") -%}
+<div class="empty">
+  {{ icon(name) }}
+  <div class="empty-title">{{ title }}</div>
+  {% if body %}<p>{{ body }}</p>{% endif %}
+  {{ caller() if caller else "" }}
+</div>
+{%- endmacro %}
+
+{#- Human labels for protocols and connection types, used on every screen. -#}
+{% macro protocol_label(tp) -%}
+{{ "Meshtastic" if tp == "meshtastic" else ("MeshCore" if tp == "meshcore" else (tp or "Radio")) }}
+{%- endmacro %}
+
+{% macro conn_label(c) -%}
+{{ {"serial": "USB", "tcp": "Network", "ble": "Bluetooth"}.get(c, c or "—") }}
+{%- endmacro %}

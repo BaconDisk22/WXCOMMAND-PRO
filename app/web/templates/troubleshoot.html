@@ -1,41 +1,50 @@
 {% extends "base.html" %}
-{% block title %} &middot; Troubleshoot{% endblock %}
+{% from "_ui.html" import icon %}
+{% block title %}Troubleshoot{% endblock %}
 {% block content %}
-<h2>Troubleshoot</h2>
-
-<div class="panel">
-  <h3>Send test message</h3>
-  <p class="hint">Keys up a radio with <code>[WX] mesh-wx test</code>. It always sends,
-    even when broadcasting is paused, and goes out on the <strong>test channel</strong>
-    (channel 1, the second channel), never the live alert channel. Use this to confirm
-    a radio actually transmits before you rely on it.</p>
-  {% set on = transports | selectattr("enabled") | list %}
-  {% if on %}
-  <div style="display:flex;flex-wrap:wrap;gap:10px;">
-    {% for t in on %}
-    <button hx-post="/troubleshoot/test/{{ t.name }}" hx-target="#test-result"
-            hx-swap="innerHTML">Test {{ t.label }}</button>
-    {% endfor %}
-    {% if on | length > 1 %}
-    <button class="secondary" hx-post="/troubleshoot/test" hx-target="#test-result"
-            hx-swap="innerHTML">Test all radios</button>
-    {% endif %}
+<div class="page-header">
+  <div>
+    <h1>Troubleshoot</h1>
+    <p class="lede">Confirm a radio really transmits, see the last weather data received, and review recent errors.</p>
   </div>
-  {% else %}
-  <p class="hint">No radios enabled. Turn one on in <a href="/settings">Settings</a>.</p>
-  {% endif %}
-  <div id="test-result" style="margin-top:12px;"></div>
+  <div class="page-actions"><a class="btn secondary" href="/settings/radio-tools">{{ icon("radio") }} Radio diagnostics</a></div>
 </div>
 
-<div class="panel">
-  <h3>Last raw NWS API response</h3>
-  <button class="secondary" hx-get="/troubleshoot/raw" hx-target="#raw"
-          hx-swap="innerHTML">Load latest</button>
-  <pre id="raw" class="mono" style="white-space:pre-wrap;word-break:break-word;
-       max-height:400px;overflow:auto;background:var(--bg);padding:12px;
-       border-radius:8px;margin-top:12px;"></pre>
-</div>
+<div class="stack">
+  <section class="card">
+    <div class="card-header"><h2>{{ icon("flask") }} Send a test message</h2>
+      <p class="desc">Keys up a radio with <code>[WX] mesh-wx test</code> on its <b>test channel</b>, never the live alert channel. It sends even while broadcasting is paused.</p></div>
+    <div class="card-body stack">
+      {% set on = transports | selectattr("enabled") | list %}
+      {% if on %}
+      <div class="cluster">
+        {% for t in on %}
+        <button class="btn" type="button" hx-post="/troubleshoot/test/{{ t.name }}" hx-target="#test-result" hx-swap="innerHTML"
+                hx-confirm="Sends a short test message over the air on {{ t.label }}'s test channel."
+                data-confirm-title="Transmit a test on {{ t.label }}?" data-confirm-ok="Send test">
+          {{ icon("broadcast", "sm") }} Test {{ t.label }} <span class="spinner" aria-hidden="true"></span></button>
+        {% endfor %}
+        {% if on | length > 1 %}
+        <button class="btn secondary" type="button" hx-post="/troubleshoot/test" hx-target="#test-result" hx-swap="innerHTML"
+                hx-confirm="Sends a short test message over the air on every enabled radio's test channel."
+                data-confirm-title="Test all radios?" data-confirm-ok="Send tests">
+          Test all radios <span class="spinner" aria-hidden="true"></span></button>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="banner warning">{{ icon("radio", "sm") }}<div>No radios are enabled. Turn one on in <a href="/settings#radios">Settings</a>.</div></div>
+      {% endif %}
+      <div id="test-result" aria-live="polite"></div>
+    </div>
+  </section>
 
-{% include "_errors.html" %}
+  <section class="card">
+    <div class="card-header"><h2>{{ icon("terminal") }} Last NWS response</h2>
+      <button class="btn sm secondary" type="button" hx-get="/troubleshoot/raw" hx-target="#raw" hx-swap="innerHTML">{{ icon("download", "sm") }} Load latest <span class="spinner" aria-hidden="true"></span></button>
+      <p class="desc">The raw data from the most recent weather.gov check, for diagnosing missing or unexpected alerts.</p></div>
+    <div class="card-body"><pre id="raw" class="codeblock"></pre></div>
+  </section>
+
+  {% include "_errors.html" %}
+</div>
 {% endblock %}
-

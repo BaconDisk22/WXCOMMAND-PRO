@@ -115,15 +115,17 @@ async def save_preferences(request: Request, values: Preferences):
 
 
 @router.get("/operator", response_class=HTMLResponse)
-async def operator():
-    from pathlib import Path
-    page = Path(__file__).parent / "templates" / "operator.html"
-    return HTMLResponse(page.read_text(encoding="utf-8"))
+async def operator(request: Request):
+    from .routes import render
+    return render(request, "operator.html")
 
 
 @router.get("/operator/manifest.webmanifest")
 async def manifest():
-    return JSONResponse({"name":"WXCOMMAND-PRO Operator Center","short_name":"WXCOMMAND-PRO","start_url":"/operator","display":"standalone","background_color":"#101a22","theme_color":"#101a22"},media_type="application/manifest+json")
+    return JSONResponse({"name":"WXCOMMAND-PRO Operator Center","short_name":"WXCOMMAND-PRO","start_url":"/operator","display":"standalone","background_color":"#0e161d","theme_color":"#0e161d"},media_type="application/manifest+json")
+
+
+MAP_FEATURE_LIMIT = 100
 
 
 @router.get("/api/ux/map")
@@ -132,7 +134,7 @@ async def weather_map():
     import httpx
     try:
         async with httpx.AsyncClient(timeout=12) as client:
-            response = await client.get("https://api.weather.gov/alerts/active", params={"limit": 100}, headers={"User-Agent": "WXCOMMAND-PRO (operator map; contact: project GitHub repository)", "Accept": "application/geo+json"})
+            response = await client.get("https://api.weather.gov/alerts/active", params={"status": "actual"}, headers={"User-Agent": "WXCOMMAND-PRO (operator map; contact: project GitHub repository)", "Accept": "application/geo+json"})
             response.raise_for_status()
             data = response.json()
     except (httpx.HTTPError, ValueError) as exc:
@@ -145,6 +147,10 @@ async def weather_map():
         if isinstance(geometry, dict) and geometry.get("type") in ("Polygon", "MultiPolygon"):
             props = item.get("properties") or {}
             features.append({"type": "Feature", "geometry": geometry, "properties": {k: props.get(k) for k in ("event", "severity", "areaDesc", "expires")}})
+            # NWS rejects a "limit" query parameter on /alerts/active (HTTP 400),
+            # so the 100-alert display cap is applied here instead.
+            if len(features) >= MAP_FEATURE_LIMIT:
+                break
     return {"type": "FeatureCollection", "features": features, "limited": True}
 
 

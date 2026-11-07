@@ -1,8 +1,9 @@
-<div class="panel" style="background:var(--bg);">
-  {% if ok %}<span class="pill ok">{{ message }}</span>
-  {% else %}<span class="pill bad">{{ message }}</span>{% endif %}
-  <div style="margin-top:8px;">
-    <code>{{ text }}</code>
-    <div class="hint">{{ bytes }} bytes</div>
+{% from "_ui.html" import icon %}
+<div class="result {{ 'success' if ok else 'danger' }}" role="status">
+  <div class="cluster">
+    {{ icon("check-circle" if ok else "alert", "tone-success" if ok else "tone-danger") }}
+    <b>{{ message }}</b>
   </div>
+  <div class="message">{{ text }}</div>
+  <div class="subtle">{{ bytes }} bytes</div>
 </div>

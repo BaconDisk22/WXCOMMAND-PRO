@@ -1,191 +1,245 @@
 {% extends "base.html" %}
-{% block title %} &middot; Settings{% endblock %}
-{% block content %}
-<h2>Settings</h2>
-<form method="post" action="/settings">
+{% from "_ui.html" import icon %}
+{% block title %}Settings{% endblock %}
 
-  <div class="panel">
-    <h3>Coverage area</h3>
-    <p class="hint">Pick your state, then check the counties to monitor. Counties cover
-      <em>every</em> alert type - tornado, severe thunderstorm and flood warnings, plus
-      watches and advisories - so this is all most people need.</p>
-    <label>State</label>
-    <select name="state" hx-get="/settings/counties" hx-target="#counties"
-            hx-swap="innerHTML" hx-include="this">
-      <option value="">- select a state -</option>
-      {% for ab, nm in states %}
-      <option value="{{ ab }}" {% if ab == current_state %}selected{% endif %}>{{ nm }}</option>
-      {% endfor %}
-    </select>
-    <span class="fld-lbl">Counties</span>
-    <div id="counties">{% include "_counties.html" %}</div>
-    <details class="adv">
-      <summary>Advanced: extra zone codes</summary>
-      <p class="hint">Optional. Additional NWS zone codes, comma-separated - e.g. marine zones
-        (AMZ350) or forecast zones outside the counties above.</p>
-      <input name="extra_zones" value="{{ extra_zones }}" placeholder="e.g. AMZ350, GMZ850">
-    </details>
-  </div>
-
-  <div class="panel">
-    <h3>What to broadcast</h3>
-    <label class="chk" style="margin-bottom:6px;">
-      <input type="checkbox" name="all_warnings" {% if all_warnings %}checked{% endif %}>
-      <span><b>All Warning products</b> - tornado, severe thunderstorm, flood, winter, wind, heat&hellip; <em>(recommended)</em></span>
+{% macro radio_card(key, title, enabled_name, enabled, conn_name, conn, port_id, port_val, host_name, host_val, host_placeholder) %}
+<div class="card inset">
+  <div class="card-body">
+    <label class="switch-row" style="padding-top:0">
+      <span class="switch-text"><b>{{ title }}</b><small>Broadcast alerts through a {{ title }} radio</small></span>
+      <span class="switch"><input type="checkbox" name="{{ enabled_name }}" {% if enabled %}checked{% endif %} role="switch"><span class="track"></span></span>
     </label>
-    <p class="hint">Warnings are the life-safety alerts. Leave this on and just add any watches or
-      advisories you also want below.</p>
-    <div class="grp-title">Watches</div>
-    <div class="checkgrid">
-      {% for ev in event_groups.Watches %}
-      <label class="chk"><input type="checkbox" name="events" value="{{ ev }}" {% if ev in selected_events %}checked{% endif %}> {{ ev }}</label>
-      {% endfor %}
-    </div>
-    <div class="grp-title">Advisories &amp; statements</div>
-    <div class="checkgrid">
-      {% for ev in event_groups.Advisories %}
-      <label class="chk"><input type="checkbox" name="events" value="{{ ev }}" {% if ev in selected_events %}checked{% endif %}> {{ ev }}</label>
-      {% endfor %}
-    </div>
-    <details class="adv">
-      <summary>Pick individual warnings instead of "All Warning products"</summary>
-      <div class="checkgrid" style="margin-top:8px;">
-        {% for ev in event_groups.Warnings %}
-        <label class="chk"><input type="checkbox" name="events" value="{{ ev }}" {% if ev in selected_events %}checked{% endif %}> {{ ev }}</label>
-        {% endfor %}
-      </div>
-    </details>
-  </div>
-
-  <div class="panel">
-    <h3>Radios</h3>
-    <p class="hint"><a href="/settings/radio-tools">Radio diagnostics, saved profiles and network discovery</a></p>
-    <p class="hint"><a href="/settings/bluetooth">Scan nearby Bluetooth devices (experimental)</a> — select Bluetooth LE below and enter the discovered device address. Hardware testing is still required.</p>
-    <p class="hint">Run <b>Meshtastic</b> and/or <b>MeshCore</b> side by side. For each: pick the
-      connection, click <b>Connect &amp; load channels</b>, then choose which channel carries live
-      alerts and which carries test messages.</p>
-
-    <div class="radio-card">
-      <label class="chk"><input type="checkbox" name="meshtastic_enabled" {% if mt_enabled %}checked{% endif %}> <b>Meshtastic</b></label>
-      <div class="row" style="margin-top:12px;">
-        <div><label>Connection</label>
-          <select name="meshtastic_conn" onchange="mwxConn('mt', this.value)">
-            <option value="serial" {% if mt_conn=='serial' %}selected{% endif %}>USB (serial)</option>
-            <option value="tcp" {% if mt_conn=='tcp' %}selected{% endif %}>Network (IP / TCP)</option>
-            <option value="ble" {% if mt_conn=='ble' %}selected{% endif %}>Bluetooth LE (experimental)</option>
-          </select></div>
-      </div>
-
-      <div id="mt-usb" style="display:{{ 'none' if mt_conn in ('tcp','ble') else 'block' }}">
-        <label>USB serial port (COM3 on Windows &middot; /dev/ttyUSB0 &middot; /dev/ttyACM0)</label>
-        <input id="serial_port" name="serial_port" value="{{ mt_port }}"
-               placeholder="click Scan, then Use - or type it">
-        <button type="button" class="secondary" hx-post="/settings/scan"
-                hx-vals='{"target":"serial_port"}' hx-target="#ports-serial_port"
-                hx-swap="outerHTML" style="margin-top:8px;">Scan for USB ports</button>
-        <div style="margin-top:8px;">{% set target = 'serial_port' %}{% include "_ports.html" %}</div>
-      </div>
-      <div id="mt-ip" style="display:{{ 'block' if mt_conn in ('tcp','ble') else 'none' }}">
-        <label>Network host or Bluetooth address / macOS UUID</label>
-        <input name="meshtastic_host" value="{{ mt_host }}" placeholder="192.168.1.50">
-      </div>
-
-      {% set radio='meshtastic' %}{% set live_field='channel_index' %}{% set test_field='meshtastic_test_channel' %}{% set live_val=mt_channel %}{% set test_val=mt_test %}{% set channels=mt_channels %}{% set connected=mt_connected %}{% set model=mt_model %}{% set error='' %}
-      <div style="margin-top:10px;">{% include "_radio_channels.html" %}</div>
-    </div>
-
-    <div class="radio-card">
-      <label class="chk"><input type="checkbox" name="meshcore_enabled" {% if mc_enabled %}checked{% endif %}> <b>MeshCore</b></label>
-      <div class="row" style="margin-top:12px;">
-        <div><label>Connection</label>
-          <select name="meshcore_conn" onchange="mwxConn('mc', this.value)">
-            <option value="serial" {% if mc_conn=='serial' %}selected{% endif %}>USB (serial)</option>
-            <option value="tcp" {% if mc_conn=='tcp' %}selected{% endif %}>Network (IP / TCP)</option>
-            <option value="ble" {% if mc_conn=='ble' %}selected{% endif %}>Bluetooth LE (experimental)</option>
-          </select></div>
-      </div>
-
-      <div id="mc-usb" style="display:{{ 'none' if mc_conn in ('tcp','ble') else 'block' }}">
-        <label>USB serial port (COM3 on Windows &middot; /dev/ttyUSB0 &middot; /dev/ttyACM0)</label>
-        <input id="meshcore_port" name="meshcore_port" value="{{ mc_port }}"
-               placeholder="click Scan, then Use - or type it">
-        <button type="button" class="secondary" hx-post="/settings/scan"
-                hx-vals='{"target":"meshcore_port"}' hx-target="#ports-meshcore_port"
-                hx-swap="outerHTML" style="margin-top:8px;">Scan for USB ports</button>
-        <div style="margin-top:8px;">{% set target = 'meshcore_port' %}{% include "_ports.html" %}</div>
-      </div>
-      <div id="mc-ip" style="display:{{ 'block' if mc_conn in ('tcp','ble') else 'none' }}">
-        <label>Network host or Bluetooth address / macOS UUID</label>
-        <input name="meshcore_host" value="{{ mc_host }}" placeholder="192.168.1.51:4000">
-      </div>
-
-      {% set radio='meshcore' %}{% set live_field='meshcore_channel' %}{% set test_field='meshcore_test_channel' %}{% set live_val=mc_channel %}{% set test_val=mc_test %}{% set channels=mc_channels %}{% set connected=mc_connected %}{% set model=mc_model %}{% set error='' %}
-      <div style="margin-top:10px;">{% include "_radio_channels.html" %}</div>
-    </div>
-  </div>
-
-  <script>
-    function mwxConn(p, v){
-      var usb = document.getElementById(p+'-usb'), ip = document.getElementById(p+'-ip');
-      if (usb) usb.style.display = (v==='tcp'||v==='ble') ? 'none' : 'block';
-      if (ip)  ip.style.display  = (v==='tcp'||v==='ble') ? 'block' : 'none';
-    }
-  </script>
-
-  <div class="panel">
-    <h3>IPAWS (FEMA)</h3>
-    <p class="hint">Broadcasts public safety alerts from FEMA's IPAWS (AMBER Alerts, civil
-      emergencies, local emergency management) to your mesh, alongside NOAA weather. See the
-      <a href="/ipaws">IPAWS History</a> page.</p>
-    <label class="chk"><input type="checkbox" name="ipaws_enabled" {% if ipaws_enabled %}checked{% endif %}>
-      <b>Enable IPAWS feed</b></label>
-    <label class="chk" style="margin-top:8px;"><input type="checkbox" name="ipaws_send_tests" {% if ipaws_send_tests %}checked{% endif %}>
-      <span>Also broadcast IPAWS <b>test &amp; exercise</b> messages (tagged <code>[IPAWS TEST]</code>).
-      Handy for confirming the mesh works during quiet stretches.</span></label>
-    <span class="fld-lbl" style="margin-top:12px;">Alert types to broadcast</span>
-    <div class="checkgrid">
-      {% for key, label, kw in ipaws_event_types %}
-      <label class="chk"><input type="checkbox" name="ipaws_events" value="{{ key }}" {% if key in ipaws_selected %}checked{% endif %}> {{ label }}</label>
-      {% endfor %}
-    </div>
-  </div>
-
-  <div class="panel">
-    <h3>NOAA</h3>
-    <div class="row">
-      <div><label>Poll interval (seconds, min {{ min_interval }})</label>
-        <input name="poll_interval" type="number" min="{{ min_interval }}"
-               value="{{ s.poll_interval }}" required></div>
-      <div><label>NWS contact (email, sent in the request header)</label>
-        <input name="nws_contact" value="{{ s.nws_contact }}" required></div>
-      <div><label>Display timezone</label>
-        <select name="display_timezone">
-          {% for val, lbl in timezones %}
-          <option value="{{ val }}" {% if val == tz_current %}selected{% endif %}>{{ lbl }}</option>
-          {% endfor %}
-          {% if tz_current and tz_current not in tz_known %}
-          <option value="{{ tz_current }}" selected>{{ tz_current }}</option>
-          {% endif %}
+    <div class="form-grid" style="margin-top:var(--sp-3)">
+      <div class="field">
+        <label class="label" for="{{ key }}-conn">How is it connected?</label>
+        <select class="select" id="{{ key }}-conn" name="{{ conn_name }}" onchange="mwxConn('{{ key }}', this.value)">
+          <option value="serial" {% if conn=='serial' %}selected{% endif %}>USB cable</option>
+          <option value="tcp" {% if conn=='tcp' %}selected{% endif %}>Network (Wi-Fi / Ethernet)</option>
+          <option value="ble" {% if conn=='ble' %}selected{% endif %}>Bluetooth LE (experimental)</option>
         </select>
-        <div class="hint" style="margin-top:4px;">Sets the time zone for timestamps and alert
-          times. <b>Automatic</b> uses this device's own time zone.</div></div>
+      </div>
+      <div class="field" id="{{ key }}-usb" {% if conn in ('tcp','ble') %}hidden{% endif %}>
+        <label class="label" for="{{ port_id }}">USB port</label>
+        <div class="input-group">
+          <input class="input mono" id="{{ port_id }}" name="{{ port_id }}" value="{{ port_val }}" placeholder="Click Scan, or type e.g. /dev/cu.usbmodem1101">
+          <button type="button" class="btn secondary" hx-post="/settings/scan"
+                  hx-vals='{"target":"{{ port_id }}"}' hx-target="#ports-{{ port_id }}" hx-swap="outerHTML">{{ icon("search", "sm") }} Scan <span class="spinner" aria-hidden="true"></span></button>
+        </div>
+        <p class="help">Windows: COM3 · Linux: /dev/ttyUSB0 or /dev/ttyACM0 · Mac: /dev/cu.usbmodem…</p>
+      </div>
+      <div class="field" id="{{ key }}-ip" {% if conn not in ('tcp','ble') %}hidden{% endif %}>
+        <label class="label" for="{{ key }}-host">Address</label>
+        <input class="input mono" id="{{ key }}-host" name="{{ host_name }}" value="{{ host_val }}" placeholder="{{ host_placeholder }}">
+        <p class="help">Network: IP or hostname (e.g. meshtastic.local). Bluetooth: device address, or the macOS device UUID from <a href="/settings/bluetooth">Bluetooth scan</a>.</p>
+      </div>
     </div>
+    <div id="{{ key }}-ports" {% if conn in ('tcp','ble') %}hidden{% endif %} style="margin-top:var(--sp-3)">{% set target = port_id %}{% include "_ports.html" %}</div>
+    <hr style="margin:var(--sp-4) 0">
+    {{ caller() }}
   </div>
-
-  <button type="submit">Save settings</button>
-</form>
-
-<div class="panel" style="margin-top:18px;">
-  <h3>About &amp; updates</h3>
-  <div class="row" style="align-items:center;">
-    <div>MeshWX version <b>v{{ version }}</b></div>
-    <div style="text-align:right;">
-      <button type="button" class="secondary"
-              hx-get="/settings/check-updates" hx-target="#update-result"
-              hx-swap="innerHTML" hx-indicator="#update-spin">Check for updates</button>
-      <span id="update-spin" class="htmx-indicator">checking&hellip;</span>
-    </div>
-  </div>
-  <div id="update-result" style="margin-top:12px;"></div>
 </div>
+{% endmacro %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Settings</h1>
+    <p class="lede">Choose what to monitor, which alerts to broadcast, and the radios that carry them.</p>
+  </div>
+</div>
+
+<div class="settings-layout">
+  <nav class="subnav" aria-label="Settings sections">
+    <a href="#coverage">{{ icon("pin", "sm") }} Coverage area</a>
+    <a href="#alerts">{{ icon("bell", "sm") }} Alert types</a>
+    <a href="#radios">{{ icon("radio", "sm") }} Radios</a>
+    <a href="#ipaws">{{ icon("shield", "sm") }} Public safety</a>
+    <a href="#polling">{{ icon("clock", "sm") }} Polling &amp; time</a>
+    <a href="#about">{{ icon("info", "sm") }} About &amp; updates</a>
+  </nav>
+
+  <div class="stack">
+  <form method="post" action="/settings" class="stack" data-track-changes>
+
+    <section class="card" id="coverage">
+      <div class="card-header"><h2>{{ icon("pin") }} Coverage area</h2>
+        <p class="desc">Pick your state, then the counties to watch. Counties cover <em>every</em> alert type (warnings, watches and advisories), so this is all most people need.</p></div>
+      <div class="card-body">
+        <div class="field" style="max-width:360px">
+          <label class="label" for="state">State or territory</label>
+          <select class="select" id="state" name="state" hx-get="/settings/counties" hx-target="#counties"
+                  hx-swap="innerHTML" hx-include="this" hx-indicator="#county-load">
+            <option value="">Select a state…</option>
+            {% for ab, nm in states %}
+            <option value="{{ ab }}" {% if ab == current_state %}selected{% endif %}>{{ nm }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <span class="label">Counties <span class="htmx-indicator subtle" id="county-load">Loading counties from NWS…</span></span>
+          <div id="counties">{% include "_counties.html" %}</div>
+        </div>
+        <details class="disclosure" style="margin-top:var(--sp-4)">
+          <summary>Advanced: extra NWS zone codes</summary>
+          <div class="disclosure-body field">
+            <label class="label" for="extra_zones">Extra zone codes <span class="opt">(optional, comma-separated)</span></label>
+            <input class="input mono" id="extra_zones" name="extra_zones" value="{{ extra_zones }}" placeholder="e.g. AMZ350, GMZ850">
+            <p class="help">For marine zones or forecast zones outside the counties above.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="card" id="alerts">
+      <div class="card-header"><h2>{{ icon("bell") }} Alert types</h2>
+        <p class="desc">Warnings are the life-safety alerts. Most people leave "All warnings" on and add any watches or advisories they also want.</p></div>
+      <div class="card-body">
+        <label class="switch-row" style="padding-top:0">
+          <span class="switch-text"><b>All warnings <span class="badge accent plain" style="margin-left:6px">Recommended</span></b>
+            <small>Tornado, severe thunderstorm, flood, winter, wind, heat and every other warning product</small></span>
+          <span class="switch"><input type="checkbox" name="all_warnings" role="switch" {% if all_warnings %}checked{% endif %}><span class="track"></span></span>
+        </label>
+        <div class="section-title">Watches</div>
+        <div data-picker>
+          <div class="picker-tools"><button type="button" class="btn sm ghost" data-picker-all>Select all</button><button type="button" class="btn sm ghost" data-picker-none>Clear</button><span class="subtle" data-picker-count></span></div>
+          <div class="checkgrid">
+            {% for ev in event_groups.Watches %}
+            <label class="check"><input type="checkbox" name="events" value="{{ ev }}" {% if ev in selected_events %}checked{% endif %}> {{ ev }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="section-title">Advisories &amp; statements</div>
+        <div data-picker>
+          <div class="picker-tools"><button type="button" class="btn sm ghost" data-picker-all>Select all</button><button type="button" class="btn sm ghost" data-picker-none>Clear</button><span class="subtle" data-picker-count></span></div>
+          <div class="checkgrid">
+            {% for ev in event_groups.Advisories %}
+            <label class="check"><input type="checkbox" name="events" value="{{ ev }}" {% if ev in selected_events %}checked{% endif %}> {{ ev }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <details class="disclosure" style="margin-top:var(--sp-4)">
+          <summary>Pick individual warnings instead</summary>
+          <div class="disclosure-body" data-picker>
+            <p class="help" style="margin-bottom:var(--sp-2)">Only used when "All warnings" is off.</p>
+            <div class="picker-tools"><button type="button" class="btn sm ghost" data-picker-all>Select all</button><button type="button" class="btn sm ghost" data-picker-none>Clear</button><span class="subtle" data-picker-count></span></div>
+            <div class="checkgrid">
+              {% for ev in event_groups.Warnings %}
+              <label class="check"><input type="checkbox" name="events" value="{{ ev }}" {% if ev in selected_events %}checked{% endif %}> {{ ev }}</label>
+              {% endfor %}
+            </div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="card" id="radios">
+      <div class="card-header"><h2>{{ icon("radio") }} Radios</h2>
+        <a class="btn sm ghost" href="/settings/radio-tools">Profiles, failover &amp; diagnostics {{ icon("chevron-right", "sm") }}</a>
+        <p class="desc">Run Meshtastic, MeshCore, or both side by side. For each: choose how it's connected, click <b>Connect &amp; load channels</b>, then pick the live and test channels.</p></div>
+      <div class="card-body stack">
+        {% call radio_card('mt', 'Meshtastic', 'meshtastic_enabled', mt_enabled, 'meshtastic_conn', mt_conn, 'serial_port', mt_port, 'meshtastic_host', mt_host, '192.168.1.50 or meshtastic.local') %}
+          {% set radio='meshtastic' %}{% set live_field='channel_index' %}{% set test_field='meshtastic_test_channel' %}{% set live_val=mt_channel %}{% set test_val=mt_test %}{% set channels=mt_channels %}{% set connected=mt_connected %}{% set model=mt_model %}{% set error='' %}
+          {% include "_radio_channels.html" %}
+        {% endcall %}
+        {% call radio_card('mc', 'MeshCore', 'meshcore_enabled', mc_enabled, 'meshcore_conn', mc_conn, 'meshcore_port', mc_port, 'meshcore_host', mc_host, '192.168.1.51:4000') %}
+          {% set radio='meshcore' %}{% set live_field='meshcore_channel' %}{% set test_field='meshcore_test_channel' %}{% set live_val=mc_channel %}{% set test_val=mc_test %}{% set channels=mc_channels %}{% set connected=mc_connected %}{% set model=mc_model %}{% set error='' %}
+          {% include "_radio_channels.html" %}
+        {% endcall %}
+      </div>
+    </section>
+
+    <section class="card" id="ipaws">
+      <div class="card-header"><h2>{{ icon("shield") }} Public safety alerts (IPAWS)</h2>
+        <p class="desc">Relays FEMA IPAWS alerts (AMBER Alerts, civil emergencies, local emergency management) alongside NOAA weather. See <a href="/ipaws">Public safety alerts</a>.</p></div>
+      <div class="card-body">
+        <label class="switch-row" style="padding-top:0">
+          <span class="switch-text"><b>Relay IPAWS alerts</b><small>Check FEMA's feed and broadcast matching alerts</small></span>
+          <span class="switch"><input type="checkbox" name="ipaws_enabled" role="switch" {% if ipaws_enabled %}checked{% endif %}><span class="track"></span></span>
+        </label>
+        <label class="switch-row">
+          <span class="switch-text"><b>Include test &amp; exercise messages</b><small>Tagged <code>[IPAWS TEST]</code>. Handy for confirming the mesh works during quiet stretches.</small></span>
+          <span class="switch"><input type="checkbox" name="ipaws_send_tests" role="switch" {% if ipaws_send_tests %}checked{% endif %}><span class="track"></span></span>
+        </label>
+        <div class="section-title">Alert types to relay</div>
+        <div data-picker>
+          <div class="picker-tools"><button type="button" class="btn sm ghost" data-picker-all>Select all</button><button type="button" class="btn sm ghost" data-picker-none>Clear</button><span class="subtle" data-picker-count></span></div>
+          <div class="checkgrid">
+            {% for key, label, kw in ipaws_event_types %}
+            <label class="check"><input type="checkbox" name="ipaws_events" value="{{ key }}" {% if key in ipaws_selected %}checked{% endif %}> {{ label }}</label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="polling">
+      <div class="card-header"><h2>{{ icon("clock") }} Polling &amp; time</h2></div>
+      <div class="card-body form-grid">
+        <div class="field">
+          <label class="label" for="poll_interval">Check for new alerts every</label>
+          <div class="input-group"><input class="input" id="poll_interval" name="poll_interval" type="number" min="{{ min_interval }}" value="{{ s.poll_interval }}" required><span class="subtle" style="align-self:center">seconds</span></div>
+          <p class="help">Minimum {{ min_interval }} seconds, to stay within NWS usage limits.</p>
+        </div>
+        <div class="field">
+          <label class="label" for="nws_contact">Contact email for NWS</label>
+          <input class="input" id="nws_contact" name="nws_contact" type="text" value="{{ s.nws_contact }}" required autocomplete="email">
+          <p class="help">The National Weather Service asks every app to identify itself. Sent only in the request header to weather.gov.</p>
+        </div>
+        <div class="field">
+          <label class="label" for="display_timezone">Time zone for display</label>
+          <select class="select" id="display_timezone" name="display_timezone">
+            {% for val, lbl in timezones %}
+            <option value="{{ val }}" {% if val == tz_current %}selected{% endif %}>{{ lbl }}</option>
+            {% endfor %}
+            {% if tz_current and tz_current not in tz_known %}
+            <option value="{{ tz_current }}" selected>{{ tz_current }}</option>
+            {% endif %}
+          </select>
+          <p class="help">Used for timestamps and alert times. <b>Automatic</b> uses this computer's time zone.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="action-bar">
+      <span class="clean-note">Changes take effect as soon as you save.</span>
+      <span class="dirty-note">{{ icon("alert", "sm") }} You have unsaved changes</span>
+      <div class="cluster"><a class="btn ghost" href="/settings">Discard</a><button class="btn" type="submit">{{ icon("save") }} Save settings</button></div>
+    </div>
+  </form>
+
+  <section class="card" id="about">
+    <div class="card-header"><h2>{{ icon("info") }} About &amp; updates</h2></div>
+    <div class="card-body stack">
+      <div class="split">
+        <div>WXCOMMAND-PRO version <b>{{ version }}</b></div>
+        <button type="button" class="btn secondary"
+                hx-get="/settings/check-updates" hx-target="#update-result" hx-swap="innerHTML">{{ icon("refresh", "sm") }} Check for updates <span class="spinner" aria-hidden="true"></span></button>
+      </div>
+      <div id="update-result" aria-live="polite"></div>
+    </div>
+  </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function mwxConn(p, v){
+    var net = (v === 'tcp' || v === 'ble');
+    ['-usb', '-ports'].forEach(function(s){ var e = document.getElementById(p + s); if (e) e.hidden = net; });
+    var ip = document.getElementById(p + '-ip'); if (ip) ip.hidden = !net;
+  }
+  // Highlight the settings section in view.
+  (function(){
+    var links = document.querySelectorAll('.subnav a');
+    if (!('IntersectionObserver' in window) || !links.length) return;
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (!en.isIntersecting) return;
+        links.forEach(function(a){ a.classList.toggle('is-active', a.getAttribute('href') === '#' + en.target.id); });
+      });
+    }, { rootMargin: '-80px 0px -60% 0px' });
+    ['coverage','alerts','radios','ipaws','polling','about'].forEach(function(id){ var s = document.getElementById(id); if (s) io.observe(s); });
+  })();
+</script>
 {% endblock %}

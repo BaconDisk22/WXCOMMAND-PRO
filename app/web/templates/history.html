@@ -1,29 +1,44 @@
 {% extends "base.html" %}
-{% block title %} &middot; NOAA History{% endblock %}
+{% from "_ui.html" import icon %}
+{% block title %}Weather alerts{% endblock %}
 {% block content %}
-<h2>Received NOAA Alerts</h2>
-<div class="panel">
-  <form method="get" action="/history" class="row">
-    <div>
-      <label>Status</label>
-      <select name="disposition">
-        <option value="">all</option>
-        {% for d in dispositions %}
-        <option value="{{ d }}" {% if d == disposition %}selected{% endif %}>{{ disp_label.get(d, d) }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div><label>From (ISO)</label>
-      <input name="date_from" value="{{ date_from }}" placeholder="2026-07-23"></div>
-    <div><label>To (ISO)</label>
-      <input name="date_to" value="{{ date_to }}" placeholder="2026-07-24"></div>
-    <div style="display:flex;align-items:flex-end;">
-      <button type="submit">Filter</button></div>
-  </form>
+<div class="page-header">
+  <div>
+    <h1>Weather alerts</h1>
+    <p class="lede">Every NWS alert received for your coverage area and what WXCOMMAND-PRO decided to do with it.
+      Whether a message actually went out over the air is in the <a href="/transmit-log">Transmit log</a>.</p>
+  </div>
 </div>
-<div class="panel" style="padding:0;" id="history-rows"
-     hx-get="/partials/history" hx-trigger="every 15s" hx-swap="innerHTML"
-     hx-include="[name='disposition'],[name='date_from'],[name='date_to']">
-  {% include "_history_rows.html" %}
+<div class="stack">
+  <section class="card">
+    <form method="get" action="/history" class="card-body toolbar" role="search" aria-label="Filter alerts">
+      <div class="field">
+        <label class="label" for="f-disp">Decision</label>
+        <select class="select" id="f-disp" name="disposition">
+          <option value="">All decisions</option>
+          {% for d in dispositions %}
+          <option value="{{ d }}" {% if d == disposition %}selected{% endif %}>{{ disp_label.get(d, d) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label class="label" for="f-from">From</label>
+        <input class="input" id="f-from" type="date" name="date_from" value="{{ date_from }}">
+      </div>
+      <div class="field">
+        <label class="label" for="f-to">To</label>
+        <input class="input" id="f-to" type="date" name="date_to" value="{{ date_to }}">
+      </div>
+      <div class="cluster">
+        <button class="btn" type="submit">{{ icon("search") }} Apply</button>
+        {% if disposition or date_from or date_to %}<a class="btn ghost" href="/history">Clear</a>{% endif %}
+      </div>
+    </form>
+  </section>
+  <section class="card" id="history-rows"
+       hx-get="/partials/history" hx-trigger="every 15s" hx-swap="innerHTML"
+       hx-include="[name='disposition'],[name='date_from'],[name='date_to']">
+    {% include "_history_rows.html" %}
+  </section>
 </div>
 {% endblock %}

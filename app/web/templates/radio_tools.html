@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon %}
+{% block title %}Radios{% endblock %}
+{% block content %}
+<a class="crumb" href="/settings#radios">{{ icon("chevron-left", "sm") }} Settings</a>
+<div class="page-header">
+  <div>
+    <h1>Radios</h1>
+    <p class="lede">Live connection status, saved radio profiles, failover and network discovery. Nothing on this page transmits.</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn secondary" id="refresh" type="button">{{ icon("refresh", "sm") }} Refresh</button>
+    <button class="btn" id="reconnect" type="button">{{ icon("plug", "sm") }} Reconnect radios <span class="spinner" aria-hidden="true"></span></button>
+  </div>
+</div>
+
+<div class="stack">
+  <section class="card">
+    <div class="card-header"><h2>{{ icon("radio") }} Connection status</h2><span class="subtle" id="status-updated"></span></div>
+    <div id="radio-rows" aria-live="polite"><div class="card-body"><span class="skeleton" style="width:60%"></span></div></div>
+    <div class="card-body" style="border-top:1px solid var(--border)">
+      <details class="disclosure">
+        <summary>Raw diagnostics</summary>
+        <div class="disclosure-body"><pre id="status" class="codeblock" role="status"></pre></div>
+      </details>
+    </div>
+  </section>
+
+  <div class="grid-2">
+    <section class="card">
+      <div class="card-header"><h2>{{ icon("layers") }} Failover</h2></div>
+      <div class="card-body">
+        <label class="switch-row" style="padding-top:0">
+          <span class="switch-text"><b>Primary / backup failover</b>
+            <small>Send through the first radio that succeeds and fall back to the next only on failure. When off (default), every enabled radio broadcasts.</small></span>
+          <span class="switch"><input id="failover" type="checkbox" role="switch"><span class="track"></span></span>
+        </label>
+        <p class="help" id="failover-state" role="status"></p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header"><h2>{{ icon("wifi") }} Find radios on this network</h2>
+        <p class="desc">Looks for Meshtastic devices announcing themselves over mDNS. MeshCore nodes usually need their IP entered by hand.</p></div>
+      <div class="card-body stack">
+        <div><button class="btn secondary" id="discover" type="button">{{ icon("search", "sm") }} Discover network radios <span class="spinner" aria-hidden="true"></span></button></div>
+        <div id="network" role="status" aria-live="polite"></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="card-header"><h2>{{ icon("save") }} Saved profiles</h2>
+      <p class="desc">Save radio connections you switch between. <b>Activate</b> applies a profile to that radio type and reconnects it.</p></div>
+    <div class="card-body">
+      <form id="profile" class="form-grid" style="align-items:end">
+        <div class="field"><label class="label" for="p-name">Profile name</label><input class="input" id="p-name" name="name" placeholder="e.g. Shop base station" required maxlength="60"></div>
+        <div class="field"><label class="label" for="p-proto">Radio type</label>
+          <select class="select" id="p-proto" name="protocol"><option value="meshtastic">Meshtastic</option><option value="meshcore">MeshCore</option></select></div>
+        <div class="field"><label class="label" for="p-conn">Connection</label>
+          <select class="select" id="p-conn" name="connection"><option value="serial">USB</option><option value="tcp">Network</option><option value="ble">Bluetooth</option></select></div>
+        <div class="field"><label class="label" for="p-target">Port, address or Bluetooth ID</label><input class="input mono" id="p-target" name="target" placeholder="/dev/cu.usbmodem1101 or 192.168.1.50" required maxlength="255"></div>
+        <div class="field"><button class="btn" type="submit">{{ icon("save", "sm") }} Save profile</button></div>
+      </form>
+    </div>
+    <ul class="list" id="profiles" role="status" style="border-top:1px solid var(--border)"></ul>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var ico = function(n, c){ return '<svg class="icon ' + (c||'') + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; };
+  function make(tag, cls, text){ var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = String(text); return e; }
+  var CONN = { serial: 'USB', tcp: 'Network', ble: 'Bluetooth' }, PROTO = { meshtastic: 'Meshtastic', meshcore: 'MeshCore' };
+  function api(url, opts){
+    return fetch(url, opts).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(v){
+      if (!r.ok) throw new Error(v.detail ? (typeof v.detail === 'string' ? v.detail : 'Invalid input') : 'HTTP ' + r.status); return v; }); });
+  }
+  function json(method, body){ return { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }; }
+  function busy(btn, on){ btn.disabled = on; btn.classList.toggle('is-busy', on); }
+
+  function renderStatus(v){
+    $('status').textContent = JSON.stringify(v, null, 2);
+    var box = $('radio-rows'); box.replaceChildren();
+    var radios = v.radios || [];
+    if (!radios.length) { box.append(make('div', 'card-body subtle', 'No radios configured.')); return; }
+    radios.forEach(function(r){
+      var row = make('div', 'device ' + (r.connected ? 'online' : r.enabled ? 'offline' : ''));
+      var i = make('span', 'device-icon'); i.innerHTML = ico(r.conn === 'serial' ? 'usb' : r.conn === 'ble' ? 'bluetooth' : 'wifi'); row.append(i);
+      var mid = make('div'); mid.append(make('div', 'device-name', r.label));
+      mid.append(make('div', 'device-meta', (CONN[r.conn] || r.conn) + ' · ' + (r.target || 'not configured') + (r.channel != null ? ' · channel ' + r.channel : '')));
+      if (r.error && r.enabled && !r.connected) mid.append(make('div', 'device-error', r.error));
+      row.append(mid);
+      row.append(make('span', 'badge ' + (r.connected ? 'success' : r.enabled ? 'danger' : ''), r.connected ? 'Connected' : r.enabled ? 'Offline' : 'Disabled'));
+      box.append(row);
+    });
+    $('status-updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+  }
+  function loadStatus(){ return api('/api/radios/status').then(renderStatus).catch(function(e){ $('status').textContent = e.message; }); }
+
+  function renderProfiles(list){
+    var box = $('profiles'); box.replaceChildren();
+    if (!list.length) {
+      var li = make('li', 'empty'); li.innerHTML = ico('save'); li.append(make('div', 'empty-title', 'No saved profiles'));
+      li.append(make('p', '', 'Save a connection above to switch radios in one click.')); box.append(li); return;
+    }
+    list.forEach(function(p){
+      var li = make('li', 'item'), main = make('div');
+      main.append(make('div', 'item-title', p.name));
+      main.append(make('div', 'item-meta', (PROTO[p.protocol] || p.protocol) + ' · ' + (CONN[p.connection] || p.connection) + ' · ' + p.target));
+      var acts = make('div', 'item-actions');
+      var a = make('button', 'btn sm secondary', 'Activate'); a.type = 'button';
+      a.onclick = function(){
+        WX.confirm({ title: 'Activate "' + p.name + '"?', text: 'This replaces the current ' + (PROTO[p.protocol] || p.protocol) + ' connection, enables it, and reconnects. Nothing is transmitted.', ok: 'Activate' })
+          .then(function(yes){ if (!yes) return; busy(a, true);
+            return api('/api/radios/profiles/activate', json('POST', { name: p.name, protocol: p.protocol }))
+              .then(function(){ WX.toast('Profile activated, reconnecting…', 'success'); WX.refreshStatus(); })
+              .catch(function(e){ WX.toast(e.message, 'danger'); })
+              .then(function(){ busy(a, false); loadStatus(); }); });
+      };
+      var d = make('button', 'btn sm danger-outline'); d.type = 'button'; d.innerHTML = ico('trash', 'sm'); d.append(' Delete');
+      d.onclick = function(){
+        WX.confirm({ title: 'Delete "' + p.name + '"?', text: 'The saved profile is removed. Your current radio settings are not changed.', ok: 'Delete', tone: 'danger' })
+          .then(function(yes){ if (!yes) return;
+            return api('/api/radios/profiles', json('DELETE', { name: p.name, protocol: p.protocol }))
+              .then(function(v){ renderProfiles(v.profiles || []); WX.toast('Profile deleted', 'success'); })
+              .catch(function(e){ WX.toast(e.message, 'danger'); }); });
+      };
+      acts.append(a, d);
+      li.append(main, acts); box.append(li);
+    });
+  }
+  function loadProfiles(){ return api('/api/radios/profiles').then(function(v){ renderProfiles(v.profiles || []); }).catch(function(){}); }
+
+  $('refresh').onclick = loadStatus;
+  $('reconnect').onclick = function(){
+    var b = $('reconnect'); busy(b, true);
+    api('/api/radios/reconnect', { method: 'POST' }).then(function(v){ renderStatus(v); WX.toast('Radios reconnected', 'success'); WX.refreshStatus(); })
+      .catch(function(e){ WX.toast('Reconnect failed: ' + e.message, 'danger'); }).then(function(){ busy(b, false); });
+  };
+  $('discover').onclick = function(){
+    var b = $('discover'), out = $('network'); busy(b, true); out.replaceChildren(make('p', 'help', 'Listening for about 5 seconds…'));
+    api('/api/radios/discover-network').then(function(v){
+      out.replaceChildren();
+      var found = v.radios || [];
+      if (!found.length) { out.append(make('p', 'help', 'No Meshtastic devices announced themselves. That doesn\'t mean none are online. Try entering the IP directly.')); return; }
+      var ul = make('ul', 'list card inset');
+      found.forEach(function(r){
+        var li = make('li', 'item'), main = make('div');
+        main.append(make('div', 'item-title', r.name)); main.append(make('div', 'item-meta mono', r.host + (r.port ? ':' + r.port : '')));
+        var use = make('button', 'btn sm secondary', 'Save as profile'); use.type = 'button';
+        use.onclick = function(){ $('p-proto').value = 'meshtastic'; $('p-conn').value = 'tcp'; $('p-target').value = r.host; $('p-name').value = $('p-name').value || r.name.split('.')[0]; $('p-name').focus(); };
+        li.append(main, use); ul.append(li);
+      });
+      out.append(ul);
+    }).catch(function(e){ out.replaceChildren(make('div', 'banner warning', 'Discovery unavailable: ' + e.message)); })
+      .then(function(){ busy(b, false); });
+  };
+  $('profile').onsubmit = function(e){
+    e.preventDefault();
+    var v = Object.fromEntries(new FormData(e.target));
+    api('/api/radios/profiles', json('POST', v)).then(function(res){ renderProfiles(res.profiles || []); e.target.reset(); WX.toast('Profile saved', 'success'); })
+      .catch(function(err){ WX.toast('Could not save: ' + err.message, 'danger'); });
+  };
+  api('/api/radios/failover').then(function(v){ $('failover').checked = !!v.enabled; }).catch(function(){});
+  $('failover').onchange = function(e){
+    api('/api/radios/failover', json('POST', { enabled: e.target.checked }))
+      .then(function(){ $('failover-state').textContent = ''; WX.toast(e.target.checked ? 'Failover on' : 'Failover off: all radios broadcast', 'success'); })
+      .catch(function(){ e.target.checked = !e.target.checked; WX.toast('Unable to save the failover setting', 'danger'); });
+  };
+  loadStatus(); loadProfiles();
+  setInterval(function(){ if (!document.hidden) loadStatus(); }, 10000);
+})();
+</script>
+{% endblock %}

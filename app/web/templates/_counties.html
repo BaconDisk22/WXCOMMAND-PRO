@@ -1,14 +1,22 @@
+{% from "_ui.html" import icon %}
 {% if err %}
-<p class="hint" style="color:var(--bad);">{{ err }}</p>
+<div class="banner danger">{{ icon("alert", "sm") }}<div><b>Couldn't load counties.</b> {{ err }}<br><span class="subtle">Check the internet connection and the NWS contact email, then pick the state again.</span></div></div>
 {% elif counties %}
-<div class="checkgrid scroll">
-  {% for id, name in counties %}
-  <label class="chk"><input type="checkbox" name="counties" value="{{ id }}" {% if id in selected %}checked{% endif %}> {{ name }}</label>
-  {% endfor %}
+<div data-picker>
+  <div class="picker-tools">
+    <input class="input" type="search" placeholder="Filter {{ counties|length }} counties in {{ state }}…" data-picker-filter aria-label="Filter counties">
+    <button type="button" class="btn sm ghost" data-picker-all>Select shown</button>
+    <button type="button" class="btn sm ghost" data-picker-none>Clear shown</button>
+    <span class="subtle" data-picker-count></span>
+  </div>
+  <div class="checkgrid scroll">
+    {% for id, name in counties %}
+    <label class="check"><input type="checkbox" name="counties" value="{{ id }}" {% if id in selected %}checked{% endif %}> {{ name }}</label>
+    {% endfor %}
+  </div>
 </div>
-<p class="hint">{{ counties|length }} counties in {{ state }} - check the ones to cover.</p>
 {% elif state %}
-<p class="hint">No counties found for "{{ state }}".</p>
+<p class="help">No counties found for "{{ state }}".</p>
 {% else %}
-<p class="hint">Pick a state above to list its counties.</p>
+<p class="help">Pick a state above to list its counties.</p>
 {% endif %}

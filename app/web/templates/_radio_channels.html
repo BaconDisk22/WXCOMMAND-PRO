@@ -1,41 +1,49 @@
-<div id="{{ radio }}-channels">
+{% from "_ui.html" import icon %}
+<div id="{{ radio }}-channels" class="stack">
   {% set opts = channels or [] %}
   {% set include_sel = "[name='meshtastic_conn'],[name='serial_port'],[name='meshtastic_host']" if radio == 'meshtastic' else "[name='meshcore_conn'],[name='meshcore_port'],[name='meshcore_host']" %}
 
-  <button type="button" class="{% if connected %}secondary{% endif %}"
-          hx-post="/settings/channels/{{ radio }}" hx-include="{{ include_sel }}"
-          hx-target="#{{ radio }}-channels" hx-swap="outerHTML"
-          hx-indicator="#{{ radio }}-load">
-    {% if connected %}Reconnect &amp; reload channels{% else %}Connect &amp; load channels{% endif %}
-  </button>
-  <span id="{{ radio }}-load" class="htmx-indicator hint"> reading from the radio&hellip;</span>
-
-  <div style="margin:.7rem 0 .2rem;">
-    {% if connected %}
-      <span class="dot ok">Connected</span>{% if model %} <span class="hint">{{ model }}</span>{% endif %}
-    {% elif error %}
-      <span class="dot bad">Not connected</span> <span class="hint">{{ error }}</span>
-    {% else %}
-      <span class="hint">Not connected. Click <b>Connect &amp; load channels</b> to read this radio.</span>
-    {% endif %}
+  <div class="split">
+    <div class="cluster" role="status">
+      {% if connected %}
+        <span class="badge success">Connected</span>{% if model %}<span class="subtle">{{ model }}</span>{% endif %}
+      {% elif error %}
+        <span class="badge danger">Not connected</span><span class="subtle wrap-anywhere">{{ error }}</span>
+      {% else %}
+        <span class="badge">Not checked</span><span class="subtle">Connect to read this radio's channel names.</span>
+      {% endif %}
+    </div>
+    <button type="button" class="btn {% if connected %}secondary{% endif %}"
+            hx-post="/settings/channels/{{ radio }}" hx-include="{{ include_sel }}"
+            hx-target="#{{ radio }}-channels" hx-swap="outerHTML">
+      {{ icon("refresh" if connected else "plug", "sm") }}
+      {% if connected %}Reconnect &amp; reload channels{% else %}Connect &amp; load channels{% endif %}
+      <span class="spinner" aria-hidden="true"></span>
+    </button>
   </div>
 
-  <div class="row">
-    <div><label>Live channel (real alerts &amp; manual sends)</label>
-      <select name="{{ live_field }}">
+  <div class="form-grid">
+    <div class="field">
+      <label class="label" for="{{ radio }}-live">Live channel</label>
+      <select class="select" id="{{ radio }}-live" name="{{ live_field }}">
         {% if opts %}
-          {% for c in opts %}<option value="{{ c.index }}" {% if c.index == live_val %}selected{% endif %}>{{ c.index }}: {{ c.name }}</option>{% endfor %}
+          {% for c in opts %}<option value="{{ c.index }}" {% if c.index == live_val %}selected{% endif %}>{{ c.index }} · {{ c.name }}</option>{% endfor %}
         {% else %}
-          <option value="{{ live_val }}" selected>{{ live_val }} (load channels for names)</option>
+          <option value="{{ live_val }}" selected>Channel {{ live_val }} (connect to see names)</option>
         {% endif %}
-      </select></div>
-    <div><label>Test channel (troubleshoot tests)</label>
-      <select name="{{ test_field }}">
+      </select>
+      <p class="help">Real alerts and manual messages go here.</p>
+    </div>
+    <div class="field">
+      <label class="label" for="{{ radio }}-test">Test channel</label>
+      <select class="select" id="{{ radio }}-test" name="{{ test_field }}">
         {% if opts %}
-          {% for c in opts %}<option value="{{ c.index }}" {% if c.index == test_val %}selected{% endif %}>{{ c.index }}: {{ c.name }}</option>{% endfor %}
+          {% for c in opts %}<option value="{{ c.index }}" {% if c.index == test_val %}selected{% endif %}>{{ c.index }} · {{ c.name }}</option>{% endfor %}
         {% else %}
-          <option value="{{ test_val }}" selected>{{ test_val }} (load channels for names)</option>
+          <option value="{{ test_val }}" selected>Channel {{ test_val }} (connect to see names)</option>
         {% endif %}
-      </select></div>
+      </select>
+      <p class="help">Troubleshoot tests go here, never on the live channel.</p>
+    </div>
   </div>
 </div>

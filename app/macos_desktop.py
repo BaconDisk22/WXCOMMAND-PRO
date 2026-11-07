@@ -245,7 +245,7 @@ def run_desktop() -> None:
     webview.setNavigationDelegate_(delegate)
     webview.setUIDelegate_(delegate)
     webview.loadHTMLString_baseURL_(
-        '<body style="background:#101a22;color:#9fb3c8;font:15px -apple-system;'
+        '<body style="background:#0e161d;color:#a9bac5;font:15px -apple-system;'
         'display:grid;place-items:center;height:90vh">Starting WXCOMMAND-PRO&hellip;</body>', None)
     window.contentView().addSubview_(webview)
     delegate.window, delegate.webview = window, webview

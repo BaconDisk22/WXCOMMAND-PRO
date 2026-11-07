@@ -1,46 +1,69 @@
 {% extends "base.html" %}
-{% block title %} &middot; Manual Send{% endblock %}
+{% from "_ui.html" import icon %}
+{% block title %}Send a message{% endblock %}
 {% block content %}
-<h2>Manual Send</h2>
-<div class="panel">
-  <p class="hint">Manual messages <strong>always transmit</strong> on your
-    <strong>live channel</strong> (the same one real alerts use), even when
-    broadcasting is paused. They are logged in the transmit log flagged as manual.</p>
-  <form hx-post="/manual/send" hx-target="#result" hx-swap="innerHTML"
-        onsubmit="return confirm('Transmit this message now?');">
-    <label>Message (max {{ max_bytes }} bytes)</label>
-    <div class="msgwrap">
-      <textarea id="msg" name="text" rows="3" oninput="updateCount()" required></textarea>
-      <span id="count" class="charcount">0/{{ max_bytes }}</span>
-    </div>
-    <div style="margin-top:12px;">
-      <button type="submit">Send</button>
-    </div>
-  </form>
-  <div id="result" style="margin-top:14px;"></div>
+<div class="page-header">
+  <div>
+    <h1>Send a message</h1>
+    <p class="lede">Type a message to broadcast right now on every enabled radio.</p>
+  </div>
 </div>
-<style>
-  .msgwrap{ position:relative; }
-  .msgwrap textarea{ width:100%; box-sizing:border-box; padding-bottom:26px; resize:vertical; }
-  .charcount{ position:absolute; right:12px; bottom:10px; font-size:12px; font-weight:700;
-    font-variant-numeric:tabular-nums; color:var(--good); pointer-events:none; }
-  .charcount.warn{ color:var(--warn); }
-  .charcount.full{ color:var(--bad); }
-</style>
+<div class="grid-main-side">
+  <section class="card">
+    <form class="card-body stack" hx-post="/manual/send" hx-target="#result" hx-swap="innerHTML"
+          hx-confirm="This transmits over the air on your live channel, the same one real alerts use, even while broadcasting is paused."
+          data-confirm-title="Transmit this message now?" data-confirm-ok="Transmit" data-confirm-tone="danger">
+      <div class="field">
+        <label class="label" for="msg">Message</label>
+        <div class="composer">
+          <textarea class="textarea" id="msg" name="text" rows="4" required aria-describedby="msg-help count"
+                    placeholder="e.g. [WX] Shelter open at the community center until 9 PM"></textarea>
+          <span id="count" class="byte-meter" aria-live="polite">0/{{ max_bytes }}</span>
+        </div>
+        <div class="meter-bar" id="meter" aria-hidden="true"><span></span></div>
+        <p class="help" id="msg-help">Limit {{ max_bytes }} bytes. Emoji and accented letters use more than one byte each; extra text is trimmed as you type.</p>
+      </div>
+      <div class="split">
+        <span class="subtle">Logged in the <a href="/transmit-log">Transmit log</a> as manual.</span>
+        <button class="btn" type="submit">{{ icon("send") }} Transmit <span class="spinner" aria-hidden="true"></span></button>
+      </div>
+      <div id="result" aria-live="polite"></div>
+    </form>
+  </section>
+  <aside class="banner warning" style="align-self:start">
+    {{ icon("alert") }}
+    <div>
+      <div class="banner-title">This always transmits</div>
+      Manual messages go out on the <b>live channel</b> even when broadcasting is paused.
+      To check a radio without reaching people on the live channel, use the
+      <a href="/troubleshoot">test message</a>, which goes to the test channel.
+    </div>
+  </aside>
+</div>
+{% endblock %}
+{% block scripts %}
 <script>
-  const MAX = {{ max_bytes }};
-  function byteLen(s){ return new TextEncoder().encode(s).length; }
-  function updateCount(){
-    const ta = document.getElementById('msg');
-    let n = byteLen(ta.value);
-    // hard cap: trim to the byte limit as you type or paste
-    while(n > MAX){ ta.value = ta.value.slice(0, -1); n = byteLen(ta.value); }
-    const c = document.getElementById('count');
-    c.textContent = n + '/' + MAX;
-    c.classList.remove('warn', 'full');
-    if(n >= MAX) c.classList.add('full');
-    else if(n >= MAX - 10) c.classList.add('warn');
-  }
-  document.addEventListener('DOMContentLoaded', updateCount);
+  (function(){
+    var MAX = {{ max_bytes }}, ta = document.getElementById('msg'), c = document.getElementById('count'), m = document.getElementById('meter');
+    var enc = new TextEncoder();
+    function byteLen(s){ return enc.encode(s).length; }
+    function update(){
+      var n = byteLen(ta.value);
+      // hard cap: trim to the byte limit as you type or paste
+      while (n > MAX) { ta.value = ta.value.slice(0, -1); n = byteLen(ta.value); }
+      c.textContent = n + '/' + MAX + ' bytes';
+      var tone = n >= MAX ? 'full' : (n >= MAX - 10 ? 'warn' : '');
+      c.className = 'byte-meter ' + tone; m.className = 'meter-bar ' + tone;
+      m.firstElementChild.style.width = Math.min(100, n / MAX * 100) + '%';
+    }
+    ta.addEventListener('input', update);
+    document.body.addEventListener('htmx:afterRequest', function(e){
+      if (e.detail.elt.matches && e.detail.elt.matches('form[hx-post="/manual/send"]') && e.detail.successful) {
+        var ok = document.querySelector('#result .result.success');
+        if (ok) { ta.value = ''; update(); WX.toast('Message transmitted', 'success'); }
+      }
+    });
+    update();
+  })();
 </script>
 {% endblock %}

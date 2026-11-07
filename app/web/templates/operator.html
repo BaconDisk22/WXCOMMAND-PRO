@@ -1,64 +1,320 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#101a22"><link rel="manifest" href="/operator/manifest.webmanifest"><title>WXCOMMAND-PRO Operator Center</title>
-<style>
-:root{color-scheme:dark;--bg:#101a22;--panel:#1b2a35;--line:#334753;--ink:#e6eff2;--muted:#a2b6c0;--accent:#67c6be}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
-header{position:sticky;top:0;background:#0d1b25;border-bottom:1px solid var(--line);padding:12px clamp(14px,3vw,36px);display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:2}
-a{color:var(--accent)}main{max-width:1300px;margin:auto;padding:22px clamp(14px,3vw,36px)}
-h1{font-size:24px;margin:0}h2{font-size:18px;margin:0 0 12px}small,.muted{color:var(--muted)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:16px}
-.panel,.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
-.card{margin:0}.value{font-size:23px;font-weight:700;overflow-wrap:anywhere}.ok{color:#7de5b1}.bad{color:#ff9494}.warn{color:#f9c16a}
-button,input,textarea{font:inherit;border-radius:8px;padding:9px;background:#243944;color:var(--ink);border:1px solid #506673}
-button{cursor:pointer;background:var(--accent);color:#101a22;font-weight:700}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #f9c16a;outline-offset:2px}
-textarea{width:100%;min-height:90px}.scroll{overflow:auto;max-height:340px}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:9px;border-bottom:1px solid var(--line);vertical-align:top}
-nav{display:flex;gap:14px;flex-wrap:wrap}label{display:inline-flex;align-items:center;gap:6px;margin-right:15px}
-#map{min-height:140px;border:1px dashed #506673;border-radius:10px;padding:18px;background:#14232d}
-[hidden]{display:none!important}body.compact .panel,body.compact .card{padding:10px}body.monitor header nav,body.monitor .controls{display:none}
-@media(max-width:620px){header{display:block}nav{margin-top:10px}td,th{font-size:12px}main{padding:12px}}
-</style></head><body><header><div><h1>🛰️ WXCOMMAND-PRO Operator Center</h1><small>Weather alerts • Radio health • Delivery history</small></div>
-<nav><a href="/">Dashboard</a><a href="https://github.com/BaconDisk22/WXCOMMAND-PRO/releases" target="_blank" rel="noopener noreferrer">Check updates</a><a href="/settings/radio-tools">Radio tools</a><a href="/settings">Settings</a></nav></header>
-<main><div class="controls panel"><button id="refresh">Refresh now</button>
-<label><input type="checkbox" id="compact"> Compact</label><label><input type="checkbox" id="advanced"> Advanced</label>
-<label><input type="checkbox" id="monitor"> Monitor mode</label><label><input type="checkbox" id="show_radios" checked> Radios</label><label><input type="checkbox" id="show_activity" checked> Timeline</label><label><input type="checkbox" id="show_weather" checked> Alerts</label><label><input type="checkbox" id="show_map" checked> Map</label><span id="updated" class="muted" role="status"></span></div>
-<div class="grid"><div class="card"><small>System health</small><div id="health" class="value">Loading…</div></div>
-<div class="card"><small>Radio connections</small><div id="radios" class="value">—</div></div>
-<div class="card"><small>Weather polling</small><div id="poll" class="value">—</div></div>
-<div class="card"><small>Queue / uptime</small><div id="queue" class="value">—</div></div></div>
-<section class="panel"><h2>Notifications &amp; Health</h2><div id="notifications" role="status" aria-live="polite">Checking system health…</div></section>
-<section class="panel" id="widget-radios"><h2>Radio Management</h2><div id="radio-list"></div><p><a href="/settings/radio-tools">Configure radios, profiles and failover →</a></p></section>
-<section class="panel" id="widget-activity"><h2>Broadcast Activity Timeline</h2><label for="activity-search">Search</label><input id="activity-search" type="search" placeholder="Search broadcasts"><label for="activity-result">Result</label><select id="activity-result"><option value="">All</option><option value="true">Successful</option><option value="false">Failed</option></select><div class="scroll"><table><thead><tr><th>Time</th><th>Transport</th><th>Delivery</th><th>Message</th></tr></thead><tbody id="activity"></tbody></table></div></section>
-<section class="panel" id="widget-weather"><h2>Weather Alerts</h2><div class="scroll"><table><thead><tr><th>Time</th><th>Event</th><th>Area</th><th>Decision</th></tr></thead><tbody id="weather"></tbody></table></div></section>
-<section class="panel" id="widget-map"><h2>Weather Map</h2><div id="map" aria-label="National Weather Service warning polygon map"></div><p class="muted" id="map-status" role="status">Loading active NWS warning polygons. This is display-only and does not affect alert broadcasts.</p></section>
-<section class="panel controls"><h2>Safe Broadcast Preview</h2><p class="muted">Simulation only: no radio transmission or test alert is generated.</p><textarea id="message" maxlength="4000" placeholder="Paste a sample alert message"></textarea><p><button id="preview">Preview payload</button></p><pre id="preview-result" aria-live="polite"></pre></section>
-<section class="panel controls"><h2>Guided Setup</h2><p class="muted">Follow the steps below before enabling transmissions. These checks are advisory, not automatic verification.</p><label><input type="checkbox" class="setup-step"> I have selected my coverage area and NWS contact</label><br><label><input type="checkbox" class="setup-step"> I have connected and checked the radio</label><br><label><input type="checkbox" class="setup-step"> I have selected a dedicated test channel</label><br><label><input type="checkbox" class="setup-step"> I have reviewed dry-run behavior</label><p id="setup-progress" role="status">0 of 4 steps reviewed</p><h3>Configuration links</h3><ol><li><a href="/settings">Choose monitored locations and alert types</a></li><li><a href="/settings/radio-tools">Connect Meshtastic and/or MeshCore</a></li><li>Review channel and test-channel settings</li><li>Confirm system health and weather polling above</li><li>Use safe preview before enabling live broadcasts</li></ol></section>
-<section class="panel" id="advanced-panel" hidden><h2>Advanced Diagnostics</h2><button id="diagnostics-refresh">Refresh diagnostics</button><pre id="diagnostics" class="scroll"></pre></section></main>
+{% extends "base.html" %}
+{% from "_ui.html" import icon %}
+{% block title %}Operator Center{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Operator Center</h1>
+    <p class="lede">Weather alerts, radio health and delivery history at a glance.</p>
+  </div>
+  <div class="page-actions op-controls">
+    <span id="updated" class="sr-only" role="status"></span>
+    <button class="btn secondary" id="refresh" type="button">{{ icon("refresh", "sm") }} Refresh</button>
+    <details class="popover" id="view-menu">
+      <summary class="btn secondary">{{ icon("eye", "sm") }} View</summary>
+      <div class="popover-panel" role="group" aria-label="View options">
+        <div class="section-title" style="margin-top:var(--sp-2)">Show panels</div>
+        <label class="switch-row"><span class="switch-text">Radios</span><span class="switch"><input type="checkbox" id="show_radios" role="switch" checked><span class="track"></span></span></label>
+        <label class="switch-row"><span class="switch-text">Broadcast timeline</span><span class="switch"><input type="checkbox" id="show_activity" role="switch" checked><span class="track"></span></span></label>
+        <label class="switch-row"><span class="switch-text">Weather alerts</span><span class="switch"><input type="checkbox" id="show_weather" role="switch" checked><span class="track"></span></span></label>
+        <label class="switch-row"><span class="switch-text">Warning map</span><span class="switch"><input type="checkbox" id="show_map" role="switch" checked><span class="track"></span></span></label>
+        <div class="section-title">Layout</div>
+        <label class="switch-row"><span class="switch-text">Compact<small>Tighter spacing</small></span><span class="switch"><input type="checkbox" id="compact" role="switch"><span class="track"></span></span></label>
+        <label class="switch-row"><span class="switch-text">Monitor mode<small>Full-width wall display, hides menus and tools</small></span><span class="switch"><input type="checkbox" id="monitor" role="switch"><span class="track"></span></span></label>
+        <label class="switch-row"><span class="switch-text">Advanced diagnostics<small>Raw connection data</small></span><span class="switch"><input type="checkbox" id="advanced" role="switch"><span class="track"></span></span></label>
+      </div>
+    </details>
+  </div>
+</div>
+
+<button class="btn secondary" id="monitor-exit" type="button" hidden style="position:fixed;right:16px;bottom:16px;z-index:30">{{ icon("x", "sm") }} Exit monitor mode</button>
+
+<div class="stack-lg">
+  <div id="notifications" class="stack" role="status" aria-live="polite">
+    <div class="skeleton" style="height:48px;border-radius:var(--r-md)"></div>
+  </div>
+
+  <section class="grid-tiles" aria-label="Summary">
+    <div class="card stat"><div class="stat-label">{{ icon("check-circle") }} System health</div><div id="health" class="stat-value">…</div><div class="stat-meta" id="health-meta">&nbsp;</div></div>
+    <div class="card stat"><div class="stat-label">{{ icon("radio") }} Radios</div><div id="radios" class="stat-value">…</div><div class="stat-meta" id="radios-meta">&nbsp;</div></div>
+    <div class="card stat"><div class="stat-label">{{ icon("cloud") }} Weather checks</div><div id="poll" class="stat-value" style="font-size:var(--fs-lg)">…</div><div class="stat-meta" id="poll-meta">&nbsp;</div></div>
+    <div class="card stat"><div class="stat-label">{{ icon("clock") }} Queue · uptime</div><div id="queue" class="stat-value">…</div><div class="stat-meta" id="queue-meta">&nbsp;</div></div>
+  </section>
+
+  <div class="grid-main-side">
+    <div class="stack">
+      <section class="card" id="widget-activity">
+        <div class="card-header"><h2>{{ icon("broadcast") }} Broadcast timeline</h2><a class="btn sm ghost" href="/transmit-log">Transmit log {{ icon("chevron-right", "sm") }}</a></div>
+        <div class="card-body toolbar" style="padding-bottom:0">
+          <div class="field grow"><label class="label sr-only" for="activity-search">Search broadcasts</label>
+            <input class="input" id="activity-search" type="search" placeholder="Search messages, radios…"></div>
+          <div class="field"><label class="label sr-only" for="activity-result">Result</label>
+            <select class="select" id="activity-result"><option value="">All results</option><option value="true">Delivered</option><option value="false">Failed</option></select></div>
+        </div>
+        <ul class="list" id="activity" style="margin-top:var(--sp-3)"></ul>
+      </section>
+      <section class="card" id="widget-weather">
+        <div class="card-header"><h2>{{ icon("cloud") }} Weather alerts</h2><a class="btn sm ghost" href="/history">All alerts {{ icon("chevron-right", "sm") }}</a></div>
+        <ul class="list" id="weather"></ul>
+      </section>
+    </div>
+    <div class="stack">
+      <section class="card" id="widget-radios">
+        <div class="card-header"><h2>{{ icon("radio") }} Radios</h2><a class="btn sm ghost" href="/settings/radio-tools">Manage {{ icon("chevron-right", "sm") }}</a></div>
+        <div id="radio-list"></div>
+      </section>
+      <section class="card" id="widget-map">
+        <div class="card-header"><h2>{{ icon("map") }} Active NWS warnings</h2></div>
+        <div class="card-body stack">
+          <div class="map-frame" id="map" role="img" aria-label="Map of active National Weather Service warning areas"><span class="subtle">Loading…</span></div>
+          <p class="help" id="map-status" role="status">Display only. It doesn't affect what gets broadcast.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="grid-2 op-tools">
+    <section class="card">
+      <div class="card-header"><h2>{{ icon("eye") }} Preview a message</h2>
+        <p class="desc">See exactly what would fit in one mesh packet. Simulation only: nothing is transmitted.</p></div>
+      <div class="card-body stack">
+        <div class="field"><label class="label" for="message">Sample message</label>
+          <textarea class="textarea" id="message" maxlength="4000" placeholder="Paste a sample alert message"></textarea></div>
+        <div><button class="btn secondary" id="preview" type="button">{{ icon("eye", "sm") }} Preview payload</button></div>
+        <div id="preview-result" aria-live="polite"></div>
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-header"><h2>{{ icon("check-circle") }} Setup checklist</h2>
+        <p class="desc">Work through these before going live. They're reminders you tick off yourself, not automatic checks.</p></div>
+      <div class="card-body stack">
+        <div class="split"><span id="setup-progress" class="subtle" role="status">0 of 4 steps reviewed</span></div>
+        <div class="progress" aria-hidden="true"><span id="setup-bar" style="width:0"></span></div>
+        <ol class="steps">
+          <li><span class="step-num">1</span><label class="check" style="padding:0"><input type="checkbox" class="setup-step"> <span>Coverage area and NWS contact chosen</span></label><a class="btn sm ghost" href="/settings#coverage">Open</a></li>
+          <li><span class="step-num">2</span><label class="check" style="padding:0"><input type="checkbox" class="setup-step"> <span>Radio connected and checked</span></label><a class="btn sm ghost" href="/settings#radios">Open</a></li>
+          <li><span class="step-num">3</span><label class="check" style="padding:0"><input type="checkbox" class="setup-step"> <span>Dedicated test channel selected</span></label><a class="btn sm ghost" href="/troubleshoot">Test</a></li>
+          <li><span class="step-num">4</span><label class="check" style="padding:0"><input type="checkbox" class="setup-step"> <span>Dry-run behavior reviewed</span></label><a class="btn sm ghost" href="/">Open</a></li>
+        </ol>
+      </div>
+    </section>
+  </div>
+
+  <section class="card" id="advanced-panel" hidden>
+    <div class="card-header"><h2>{{ icon("terminal") }} Advanced diagnostics</h2>
+      <button class="btn sm secondary" id="diagnostics-refresh" type="button">{{ icon("refresh", "sm") }} Refresh diagnostics</button></div>
+    <div class="card-body"><pre id="diagnostics" class="codeblock"></pre></div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
-const el=id=>document.getElementById(id);
-let activityCache=[];
-const text=(id,value)=>{el(id).textContent=String(value??'—')};
-const cell=(row,value)=>{const td=document.createElement('td');td.textContent=String(value??'—');row.append(td)};
-function rows(id,items,keys){const tbody=el(id);tbody.replaceChildren();for(const item of items){const tr=document.createElement('tr');for(const key of keys)cell(tr,item[key]);tbody.append(tr)}if(!items.length){const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=keys.length;td.textContent='No activity yet';tr.append(td);tbody.append(tr)}}
-function renderActivity(){const q=el('activity-search').value.toLowerCase().trim(),status=el('activity-result').value;rows('activity',activityCache.filter(r=>(!q||JSON.stringify(r).toLowerCase().includes(q))&&(!status||String(r.success).toLowerCase()===status)),['ts','transport','success','text'])}
-async function refresh(){try{const response=await fetch('/api/ux/overview',{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);const d=await response.json();
-text('health',d.health.toUpperCase());el('health').className='value '+(d.health==='healthy'?'ok':d.health==='critical'?'bad':'warn');
-text('radios',d.radios.filter(r=>r.connected).length+' / '+d.radios.filter(r=>r.enabled).length+' online');
-text('poll',d.last_poll_result||'Waiting for NWS');text('queue',d.queue_depth+' queued • '+Math.floor(d.uptime_seconds/60)+' min');
-const notices=el('notifications');notices.replaceChildren();for(const n of d.notifications){const p=document.createElement('p');p.className=n.level==='critical'?'bad':'warn';p.textContent=n.level.toUpperCase()+': '+n.message+' ';const b=document.createElement('button');b.textContent='Acknowledge';b.onclick=async()=>{const r=await fetch('/api/ux/notifications/ack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:n.id})});if(r.ok){b.textContent='Acknowledged';b.disabled=true}};p.append(b);notices.append(p)}if(!d.notifications.length){const p=document.createElement('p');p.className='ok';p.textContent='No current radio, queue, or polling warnings';notices.append(p)}
-const box=el('radio-list');box.replaceChildren();for(const r of d.radios){const p=document.createElement('p');p.textContent=r.label+': '+(r.connected?'Connected':r.enabled?'Disconnected':'Disabled')+' • '+r.conn+' • '+(r.target||'not configured');box.append(p)}
-activityCache=d.broadcast_history;renderActivity();rows('weather',d.weather_history,['ts','event','area','disposition']);
-text('diagnostics',JSON.stringify({radios:d.radios,connections:d.connection_history,last_error:d.last_error,last_poll:d.last_poll,dry_run:d.dry_run},null,2));
-text('updated','Updated '+new Date().toLocaleTimeString())}catch(err){text('updated','Unable to refresh: '+err.message)}}
-async function loadPreferences(){try{const r=await fetch('/api/ux/preferences');const p=await r.json();for(const k of ['compact','advanced','monitor','show_radios','show_activity','show_weather','show_map'])el(k).checked=!!p[k];apply()}catch{}}
-function apply(){document.body.classList.toggle('compact',el('compact').checked);document.body.classList.toggle('monitor',el('monitor').checked);el('advanced-panel').hidden=!el('advanced').checked;for(const k of ['radios','activity','weather','map'])el('widget-'+k).hidden=!el('show_'+k).checked}
-for(const k of ['compact','advanced','monitor','show_radios','show_activity','show_weather','show_map'])el(k).addEventListener('change',async()=>{apply();await fetch('/api/ux/preferences',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(['compact','advanced','monitor','show_radios','show_activity','show_weather','show_map'].map(k=>[k,el(k).checked])))})});
-el('preview').onclick=async()=>{try{const r=await fetch('/api/ux/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:el('message').value})});const v=await r.json();text('preview-result',r.ok?JSON.stringify(v,null,2):'Enter a sample message')}catch(e){text('preview-result',e.message)}};
-el('diagnostics-refresh').onclick=async()=>{try{const r=await fetch('/api/ux/diagnostics',{cache:'no-store'});text('diagnostics',JSON.stringify(await r.json(),null,2))}catch(e){text('diagnostics',e.message)}};
-el('activity-search').addEventListener('input',renderActivity);el('activity-result').addEventListener('change',renderActivity);
-for(const step of document.querySelectorAll('.setup-step'))step.addEventListener('change',()=>{const done=[...document.querySelectorAll('.setup-step')].filter(x=>x.checked).length;text('setup-progress',done+' of 4 steps reviewed')});
-el('refresh').onclick=refresh;loadPreferences();refresh();setInterval(refresh,15000);
-async function loadMap(){try{const response=await fetch('/api/ux/map');if(!response.ok)throw Error('NWS map feed unavailable');const geo=await response.json();const map=el('map');map.replaceChildren();const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 720 360');svg.setAttribute('role','img');svg.setAttribute('aria-label','Simplified warning polygons across the United States');svg.style.cssText='width:100%;height:auto;max-height:380px;background:#10222e;border-radius:8px';let count=0;
-for(const feature of geo.features){const g=feature.geometry;if(!g)continue;const polys=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];for(const poly of polys){for(const ring of poly){if(!Array.isArray(ring)||ring.length<3)continue;const pts=ring.filter(p=>Array.isArray(p)&&p.length>=2&&p[0]>=-125&&p[0]<=-66&&p[1]>=24&&p[1]<=50).map(p=>[(p[0]+125)/59*720,(50-p[1])/26*360]);if(pts.length<3)continue;const polygon=document.createElementNS('http://www.w3.org/2000/svg','polygon');polygon.setAttribute('points',pts.map(p=>p.join(',')).join(' '));polygon.setAttribute('fill','#f9c16a');polygon.setAttribute('fill-opacity','.28');polygon.setAttribute('stroke','#f9c16a');polygon.setAttribute('stroke-width','1.5');const title=document.createElementNS('http://www.w3.org/2000/svg','title');title.textContent=(feature.properties?.event||'Weather alert')+' — '+(feature.properties?.areaDesc||'');polygon.append(title);svg.append(polygon);count++}}}
-map.append(svg);text('map-status',count+' polygon rings shown. Simplified contiguous-US projection; not a navigation map. Feed limited to first 100 active alerts.')}catch(e){text('map-status','Map unavailable: '+e.message)}}
-loadMap();
-</script></body></html>
+(function(){
+  var el = function(id){ return document.getElementById(id); };
+  var DISP = {{ disp_label | tojson }};
+  var PREFS = ['compact','advanced','monitor','show_radios','show_activity','show_weather','show_map'];
+  var activityCache = [], acked = {};
+  var ico = function(n, cls){ return '<svg class="icon ' + (cls||'') + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; };
+  function make(tag, cls, text){ var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = String(text); return e; }
+  function when(ts){
+    if (!ts) return '—';
+    var d = new Date(ts); if (isNaN(d)) return String(ts);
+    return d.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+  function proto(tp){ return tp === 'meshtastic' ? 'Meshtastic' : tp === 'meshcore' ? 'MeshCore' : (tp || 'Radio'); }
+  function emptyLi(list, title, body, icon){
+    var li = make('li', 'empty'); li.innerHTML = ico(icon || 'inbox');
+    li.append(make('div', 'empty-title', title)); if (body) li.append(make('p', '', body)); list.append(li);
+  }
+  function uptime(sec){ var m = Math.floor((sec||0)/60), h = Math.floor(m/60), d = Math.floor(h/24);
+    return d ? d + 'd ' + (h%24) + 'h' : h ? h + 'h ' + (m%60) + 'm' : m + ' min'; }
+
+  function renderNotifications(list){
+    var box = el('notifications'); box.replaceChildren();
+    if (!list.length) {
+      var ok = make('div', 'banner success'); ok.innerHTML = ico('check-circle');
+      ok.append(make('div', '', 'No radio, queue or weather-check warnings right now.')); box.append(ok); return;
+    }
+    list.forEach(function(n){
+      var b = make('div', 'banner ' + (n.level === 'critical' ? 'danger' : 'warning'));
+      b.innerHTML = ico('alert');
+      var body = make('div'); body.append(make('div', 'banner-title', n.level === 'critical' ? 'Needs attention' : 'Warning'));
+      body.append(make('div', '', n.message)); b.append(body);
+      var actions = make('div', 'banner-actions');
+      if (acked[n.id]) actions.append(make('span', 'badge plain', 'Acknowledged'));
+      else {
+        var btn = make('button', 'btn sm secondary', 'Acknowledge'); btn.type = 'button';
+        btn.onclick = function(){
+          btn.disabled = true;
+          fetch('/api/ux/notifications/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: n.id }) })
+            .then(function(r){ if (!r.ok) throw new Error(); acked[n.id] = 1; btn.replaceWith(make('span', 'badge plain', 'Acknowledged')); WX.toast('Warning acknowledged', 'success'); })
+            .catch(function(){ btn.disabled = false; WX.toast('Could not acknowledge. The warning may have cleared.', 'warning'); });
+        };
+        actions.append(btn);
+      }
+      b.append(actions); box.append(b);
+    });
+  }
+  function renderRadios(radios){
+    var box = el('radio-list'); box.replaceChildren();
+    if (!radios.length) { var ul = make('ul', 'list'); emptyLi(ul, 'No radios configured', 'Set one up in Settings.', 'radio'); box.append(ul); return; }
+    radios.forEach(function(r){
+      var state = r.connected ? 'online' : r.enabled ? 'offline' : '';
+      var row = make('div', 'device ' + state);
+      var i = make('span', 'device-icon'); i.innerHTML = ico(r.conn === 'serial' ? 'usb' : r.conn === 'ble' ? 'bluetooth' : 'wifi'); row.append(i);
+      var mid = make('div'); mid.append(make('div', 'device-name', r.label));
+      mid.append(make('div', 'device-meta', ({serial:'USB',tcp:'Network',ble:'Bluetooth'}[r.conn] || r.conn) + ' · ' + (r.target || 'not configured')));
+      if (r.error && r.enabled && !r.connected) mid.append(make('div', 'device-error', r.error));
+      row.append(mid);
+      row.append(make('span', 'badge ' + (r.connected ? 'success' : r.enabled ? 'danger' : ''), r.connected ? 'Connected' : r.enabled ? 'Offline' : 'Disabled'));
+      box.append(row);
+    });
+  }
+  function renderActivity(){
+    var q = el('activity-search').value.toLowerCase().trim(), status = el('activity-result').value, list = el('activity');
+    list.replaceChildren();
+    var rows = activityCache.filter(function(r){
+      return (!q || JSON.stringify(r).toLowerCase().indexOf(q) >= 0) && (!status || String(!!r.success) === status);
+    });
+    if (!rows.length) { emptyLi(list, activityCache.length ? 'No matches' : 'No broadcasts yet', activityCache.length ? 'Try a different search.' : 'Transmissions appear here as radios send them.', 'broadcast'); return; }
+    rows.forEach(function(r){
+      var li = make('li', 'item'), head = make('div'), c = make('div', 'cluster');
+      c.append(make('span', 'badge ' + (r.success ? 'success' : 'danger'), r.success ? 'Delivered' : 'Failed'));
+      c.append(make('span', 'badge accent plain', proto(r.transport)));
+      if (r.manual) c.append(make('span', 'badge plain', 'Manual'));
+      head.append(c); li.append(head);
+      var side = make('div', 'item-side'); side.append(make('span', 'subtle nowrap', when(r.ts))); li.append(side);
+      var body = make('div', 'item-body'); body.append(make('div', 'message', r.text || '')); li.append(body);
+      list.append(li);
+    });
+  }
+  function renderWeather(items){
+    var list = el('weather'); list.replaceChildren();
+    if (!items.length) { emptyLi(list, 'No weather alerts yet', 'Alerts for your coverage area appear as NWS issues them.', 'cloud'); return; }
+    items.forEach(function(a){
+      var li = make('li', 'item'), main = make('div');
+      main.append(make('div', 'item-title', a.event || 'Alert'));
+      main.append(make('div', 'item-meta', a.area || ''));
+      var side = make('div', 'item-side');
+      side.append(make('span', 'badge ' + (a.disposition || ''), DISP[a.disposition] || a.disposition || '—'));
+      side.append(make('span', 'subtle nowrap', when(a.ts)));
+      li.append(main, side); list.append(li);
+    });
+  }
+  function render(d){
+    var H = { healthy: ['Healthy', 'tone-success', 'Everything is running normally'], degraded: ['Degraded', 'tone-warning', 'Some radios are offline'], critical: ['Critical', 'tone-danger', 'Alerts may not be delivered'] }[d.health] || [d.health, '', ''];
+    el('health').textContent = H[0]; el('health').className = 'stat-value ' + H[1]; el('health-meta').textContent = H[2];
+    var en = d.radios.filter(function(r){ return r.enabled; }), on = en.filter(function(r){ return r.connected; });
+    el('radios').innerHTML = ''; el('radios').append(on.length + ''); var u = make('span', 'unit', '/ ' + en.length); el('radios').append(u);
+    el('radios').className = 'stat-value ' + (!en.length ? 'tone-muted' : on.length === en.length ? 'tone-success' : on.length ? 'tone-warning' : 'tone-danger');
+    el('radios-meta').textContent = !en.length ? 'None enabled' : on.length === en.length ? 'All online' : (en.length - on.length) + ' offline';
+    var pr = d.last_poll_result || 'Waiting for first check';
+    el('poll').textContent = pr; el('poll').className = 'stat-value' + (/^error/i.test(pr) ? ' tone-danger' : '');
+    el('poll').style.fontSize = 'var(--fs-lg)';
+    el('poll-meta').textContent = d.last_poll ? 'Last check ' + when(d.last_poll) : '';
+    el('queue').textContent = d.queue_depth + ' waiting'; el('queue').className = 'stat-value' + (d.queue_depth > 5 ? ' tone-warning' : '');
+    el('queue-meta').textContent = 'Running ' + uptime(d.uptime_seconds) + (d.dry_run === true || String(d.dry_run) === 'true' ? ' · dry run' : ' · live');
+    renderNotifications(d.notifications); renderRadios(d.radios);
+    activityCache = d.broadcast_history || []; renderActivity(); renderWeather(d.weather_history || []);
+    el('diagnostics').textContent = JSON.stringify({ radios: d.radios, connections: d.connection_history, last_error: d.last_error, last_poll: d.last_poll, dry_run: d.dry_run }, null, 2);
+    el('updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+  }
+  document.addEventListener('wx:overview', function(e){ render(e.detail); });
+
+  /* preferences (stored server-side, same keys as before) */
+  function apply(){
+    document.body.classList.toggle('density-compact', el('compact').checked);
+    document.body.classList.toggle('monitor-mode', el('monitor').checked);
+    el('monitor-exit').hidden = !el('monitor').checked;
+    el('advanced-panel').hidden = !el('advanced').checked;
+    ['radios','activity','weather','map'].forEach(function(k){ el('widget-' + k).hidden = !el('show_' + k).checked; });
+  }
+  function savePrefs(){
+    var body = {}; PREFS.forEach(function(k){ body[k] = el(k).checked; });
+    return fetch('/api/ux/preferences', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function(r){ if (!r.ok) throw new Error(); }).catch(function(){ WX.toast('View options could not be saved', 'warning'); });
+  }
+  PREFS.forEach(function(k){ el(k).addEventListener('change', function(){ apply(); savePrefs(); }); });
+  el('monitor-exit').onclick = function(){ el('monitor').checked = false; apply(); savePrefs(); };
+  fetch('/api/ux/preferences').then(function(r){ return r.json(); }).then(function(p){ PREFS.forEach(function(k){ el(k).checked = !!p[k]; }); apply(); }).catch(function(){});
+  fetch('/api/ux/notifications/history').then(function(r){ return r.json(); }).then(function(h){ (h.notifications || []).forEach(function(n){ if (n.acknowledged_at) acked[n.id] = 1; }); }).catch(function(){});
+  document.addEventListener('click', function(e){ var m = el('view-menu'); if (m.open && !m.contains(e.target)) m.open = false; });
+
+  el('refresh').onclick = function(){ WX.refreshStatus(); loadMap(); };
+  el('activity-search').addEventListener('input', renderActivity);
+  el('activity-result').addEventListener('change', renderActivity);
+
+  el('preview').onclick = function(){
+    var out = el('preview-result');
+    fetch('/api/ux/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: el('message').value }) })
+      .then(function(r){ return r.json().then(function(v){ return [r.ok, v]; }); })
+      .then(function(x){
+        out.replaceChildren();
+        if (!x[0]) { out.append(make('p', 'help', 'Enter a sample message first.')); return; }
+        var v = x[1], box = make('div', 'result ' + (v.truncated ? 'danger' : 'success'));
+        var head = make('div', 'cluster'); box.append(head);
+        head.append(make('span', 'badge ' + (v.truncated ? 'warning' : 'success'), v.truncated ? 'Would be trimmed' : 'Fits in one packet'));
+        head.append(make('span', 'subtle', v.bytes + ' of ' + v.limit + ' bytes · not transmitted'));
+        box.append(make('div', 'message', v.preview));
+        out.append(box);
+      }).catch(function(e){ out.textContent = e.message; });
+  };
+  el('diagnostics-refresh').onclick = function(){
+    fetch('/api/ux/diagnostics', { cache: 'no-store' }).then(function(r){ return r.json(); })
+      .then(function(v){ el('diagnostics').textContent = JSON.stringify(v, null, 2); })
+      .catch(function(e){ el('diagnostics').textContent = e.message; });
+  };
+
+  /* setup checklist: remembered in this browser */
+  var steps = document.querySelectorAll('.setup-step'), KEY = 'wx-setup-steps';
+  function stepUpdate(){
+    var done = 0; steps.forEach(function(s, i){ s.closest('li').classList.toggle('done', s.checked); if (s.checked) done++; });
+    el('setup-progress').textContent = done + ' of ' + steps.length + ' steps reviewed';
+    el('setup-bar').style.width = (done / steps.length * 100) + '%';
+    try { localStorage.setItem(KEY, JSON.stringify([].map.call(steps, function(s){ return s.checked; }))); } catch (e) {}
+  }
+  try { (JSON.parse(localStorage.getItem(KEY)) || []).forEach(function(v, i){ if (steps[i]) steps[i].checked = !!v; }); } catch (e) {}
+  steps.forEach(function(s){ s.addEventListener('change', stepUpdate); }); stepUpdate();
+
+  /* display-only warning map */
+  function loadMap(){
+    var map = el('map'), status = el('map-status'), NS = 'http://www.w3.org/2000/svg';
+    fetch('/api/ux/map').then(function(r){ if (!r.ok) throw new Error('NWS map feed unavailable'); return r.json(); }).then(function(geo){
+      map.replaceChildren();
+      var svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 720 360'); svg.setAttribute('aria-hidden', 'true');
+      var count = 0;
+      geo.features.forEach(function(feature){
+        var g = feature.geometry; if (!g) return;
+        var polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+        polys.forEach(function(poly){ poly.forEach(function(ring){
+          if (!Array.isArray(ring) || ring.length < 3) return;
+          var pts = ring.filter(function(p){ return Array.isArray(p) && p.length >= 2 && p[0] >= -125 && p[0] <= -66 && p[1] >= 24 && p[1] <= 50; })
+                        .map(function(p){ return [(p[0] + 125) / 59 * 720, (50 - p[1]) / 26 * 360]; });
+          if (pts.length < 3) return;
+          var pg = document.createElementNS(NS, 'polygon'); pg.setAttribute('class', 'map-poly');
+          pg.setAttribute('points', pts.map(function(p){ return p.join(','); }).join(' '));
+          var t = document.createElementNS(NS, 'title'); t.textContent = ((feature.properties || {}).event || 'Weather alert') + ' — ' + ((feature.properties || {}).areaDesc || '');
+          pg.append(t); svg.append(pg); count++;
+        }); });
+      });
+      // Zoom to the warnings (with padding) so small areas stay visible.
+      if (count) {
+        var xs = [], ys = [];
+        svg.querySelectorAll('polygon').forEach(function(pg){ pg.getAttribute('points').split(' ').forEach(function(pt){ var c = pt.split(','); xs.push(+c[0]); ys.push(+c[1]); }); });
+        var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+        var w = Math.max(x1 - x0, 60), h = Math.max(y1 - y0, 30), pad = Math.max(w, h) * 0.08;
+        // keep the frame's 2:1 shape
+        if (w / h > 2) h = w / 2; else w = h * 2;
+        var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+        svg.setAttribute('viewBox', [cx - w / 2 - pad, cy - h / 2 - pad / 2, w + pad * 2, h + pad].join(' '));
+        svg.querySelectorAll('polygon').forEach(function(pg){ pg.setAttribute('vector-effect', 'non-scaling-stroke'); });
+      }
+      map.append(svg);
+      status.textContent = count + ' warning area' + (count === 1 ? '' : 's') + ' (contiguous US, first 100 active alerts). Display only; it doesn\'t affect what gets broadcast.';
+    }).catch(function(e){ map.replaceChildren(make('span', 'subtle', 'Map unavailable')); status.textContent = 'Map unavailable: ' + e.message; });
+  }
+  loadMap();
+})();
+</script>
+{% endblock %}

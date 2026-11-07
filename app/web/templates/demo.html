@@ -1,23 +1,66 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WXCOMMAND-PRO | Demonstration</title>
+<meta name="color-scheme" content="dark light">
+<title>Demonstration · WXCOMMAND-PRO</title>
+<!-- Self-contained on purpose: this page is also opened straight from disk for
+     screenshots, so it carries a trimmed copy of the design tokens in static/wx.css. -->
 <style>
-:root{font-family:system-ui,-apple-system,sans-serif;color:#e7f2f5;background:#0d1823}
-*{box-sizing:border-box}body{margin:0}header{padding:22px 34px;background:#152638;border-bottom:1px solid #36556a;display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}
-h1{font-size:23px;margin:0}h2{font-size:18px;margin:0 0 16px}.tag{background:#81541b;color:#fff1d4;border-radius:6px;padding:8px 12px;font-weight:800;letter-spacing:1px}
-main{max-width:1220px;margin:auto;padding:28px}.intro{color:#b6cdd7;margin:0 0 22px}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card,.panel{background:#172b3d;border:1px solid #36556a;border-radius:12px;padding:20px}.card .value{font-size:29px;font-weight:800;margin-top:12px;color:#80e2c4}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}.muted{color:#a9c2ce}.event{border-top:1px solid #36556a;padding:12px 0}.event:first-of-type{border:0}.pill{display:inline-block;background:#285e54;color:#c5ffef;border-radius:5px;padding:3px 9px;font-size:12px}.danger{background:#70312c;color:#ffe1d9}.warn{background:#6b541f;color:#fff2bf}select{background:#223e53;color:white;border:1px solid #6b8ba0;padding:9px;border-radius:6px}footer{padding:15px;text-align:center;color:#adc7d1} @media(max-width:750px){.cards{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}}
+:root{--bg:#0e161d;--bg-elev:#131e27;--surface:#17232d;--surface-2:#1d2b37;--border:#2a3b48;--text:#e8eff3;--text-2:#a9bac5;--text-3:#8396a3;
+--accent:#5cc8bd;--success:#4fd08b;--success-soft:rgba(79,208,139,.14);--warning:#f2b24c;--warning-soft:rgba(242,178,76,.15);--danger:#ff7a72;--danger-soft:rgba(255,122,114,.14);--neutral-soft:rgba(169,186,197,.12);color-scheme:dark}
+@media(prefers-color-scheme:light){:root{--bg:#f3f6f8;--bg-elev:#fff;--surface:#fff;--surface-2:#f1f5f7;--border:#dbe3e8;--text:#13212b;--text-2:#46586a;--text-3:#5f7180;--accent:#0e7f75;--success:#12804a;--success-soft:rgba(18,128,74,.1);--warning:#9a5b00;--warning-soft:rgba(196,122,0,.12);--danger:#c23a31;--danger-soft:rgba(194,58,49,.1);--neutral-soft:rgba(70,88,106,.1);color-scheme:light}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px 28px;background:var(--bg-elev);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:12px}.mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(145deg,var(--accent),#2f8f86);display:grid;place-items:center;color:#fff;font-size:18px}
+h1{font-size:17px;margin:0;letter-spacing:.01em}h2{font-size:17px;margin:0;display:flex;align-items:center;gap:8px}.sub{color:var(--text-3);font-size:13px}
+.tag{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:999px;background:var(--warning-soft);color:var(--warning);font-weight:700;font-size:12px;letter-spacing:.06em}
+.ctl{display:flex;align-items:center;gap:12px;flex-wrap:wrap}label{font-size:13px;font-weight:600;color:var(--text-2)}
+select{min-height:38px;padding:6px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font:inherit}
+main{max-width:1200px;margin:auto;padding:24px 28px 40px}.intro{color:var(--text-2);margin:0 0 20px}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.card{background:var(--surface);border:1px solid var(--border);border-radius:14px}
+.tile{padding:16px 20px}.tile .k{font-size:13px;font-weight:600;color:var(--text-2)}.tile .v{font-size:26px;font-weight:700;margin-top:4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.head{padding:16px 20px;border-bottom:1px solid var(--border)}.body{padding:4px 20px 12px}
+.row{padding:12px 0;border-bottom:1px solid var(--border)}.row:last-child{border-bottom:0}.row p{margin:4px 0 0;color:var(--text-3);font-size:13px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:650;background:var(--neutral-soft);color:var(--text-2)}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}.ok{background:var(--success-soft);color:var(--success)}.warn{background:var(--warning-soft);color:var(--warning)}.danger{background:var(--danger-soft);color:var(--danger)}
+.t-ok{color:var(--success)}.t-warn{color:var(--warning)}.t-bad{color:var(--danger)}.time{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--text-3);margin-right:10px}
+ul.safe{list-style:none;margin:0;padding:8px 0}ul.safe li{padding:6px 0;display:flex;gap:10px}ul.safe li::before{content:"✓";color:var(--success);font-weight:700}
+footer{padding:16px;text-align:center;color:var(--text-3);font-size:13px}
+@media(max-width:800px){.tiles{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}header,main{padding-left:16px;padding-right:16px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style></head><body>
-<header><div><h1>⛈ WXCOMMAND-PRO</h1><span class="muted">Meshtastic + MeshCore Weather Operations</span></div><div><span class="tag">DEMONSTRATION • SIMULATED DATA</span> &nbsp; <label for="scenario">Scenario:</label> <select id="scenario"><option value="normal">Normal operations</option><option value="storm">Severe weather</option><option value="offline">Radio outage</option></select></div></header>
-<main><p class="intro">Read-only showcase. No radio connection, NWS request, alerts, or transmissions occur on this page. All events are fictional.</p>
-<div class="cards"><div class="card"><div class="muted">System</div><div class="value" id="health">Healthy</div></div><div class="card"><div class="muted">Meshtastic</div><div class="value" id="meshtastic">Connected</div></div><div class="card"><div class="muted">MeshCore</div><div class="value" id="meshcore">Connected</div></div><div class="card"><div class="muted">Pending messages</div><div class="value" id="queue">0</div></div></div>
-<div class="grid"><section class="panel"><h2>Weather alerts <span class="pill">SIMULATED</span></h2><div id="alerts"></div></section><section class="panel"><h2>Radio activity <span class="pill">SIMULATED</span></h2><div id="activity"></div></section></div>
-<div class="grid"><section class="panel"><h2>System overview</h2><p id="summary"></p><p class="muted">Example monitoring area: Graham County, NC</p></section><section class="panel"><h2>Safety status</h2><p>✔ Demonstration mode only</p><p>✔ No radio transmissions</p><p>✔ No live weather API calls</p><p>✔ No production settings changed</p></section></div></main><footer>WXCOMMAND-PRO demonstration • Not an operational warning system</footer>
+<header>
+  <div class="brand"><span class="mark" aria-hidden="true">⛈</span><div><h1>WXCOMMAND-PRO</h1><span class="sub">Meshtastic + MeshCore weather operations</span></div></div>
+  <div class="ctl"><span class="tag">DEMONSTRATION • SIMULATED DATA</span>
+    <label for="scenario">Scenario</label>
+    <select id="scenario"><option value="normal">Normal operations</option><option value="storm">Severe weather</option><option value="offline">Radio outage</option></select></div>
+</header>
+<main>
+  <p class="intro">Read-only showcase. No radio connection, NWS request, alerts, or transmissions occur on this page. All events are fictional.</p>
+  <div class="tiles">
+    <div class="card tile"><div class="k">System health</div><div class="v" id="health">Healthy</div></div>
+    <div class="card tile"><div class="k">Meshtastic</div><div class="v" id="meshtastic">Connected</div></div>
+    <div class="card tile"><div class="k">MeshCore</div><div class="v" id="meshcore">Connected</div></div>
+    <div class="card tile"><div class="k">Waiting to send</div><div class="v" id="queue">0</div></div>
+  </div>
+  <div class="grid">
+    <section class="card"><div class="head"><h2>Weather alerts <span class="badge">SIMULATED</span></h2></div><div class="body" id="alerts"></div></section>
+    <section class="card"><div class="head"><h2>Radio activity <span class="badge">SIMULATED</span></h2></div><div class="body" id="activity"></div></section>
+  </div>
+  <div class="grid">
+    <section class="card"><div class="head"><h2>System overview</h2></div><div class="body"><p id="summary"></p><p class="sub">Example monitoring area: Graham County, NC</p></div></section>
+    <section class="card"><div class="head"><h2>Safety status</h2></div><div class="body"><ul class="safe"><li>Demonstration mode only</li><li>No radio transmissions</li><li>No live weather API calls</li><li>No production settings changed</li></ul></div></section>
+  </div>
+</main>
+<footer>WXCOMMAND-PRO demonstration • Not an operational warning system</footer>
 <script>
 const data={
- normal:{health:"Healthy",meshtastic:"Connected",meshcore:"Connected",queue:"0",summary:"Both example radios are connected. No active warning messages.",alerts:[["No active alerts","Demo area clear","pill"]],activity:[["09:42","Simulated radio heartbeat: Meshtastic OK"],["09:41","Simulated radio heartbeat: MeshCore OK"]]},
- storm:{health:"Warning",meshtastic:"Connected",meshcore:"Connected",queue:"2",summary:"Fictional tornado warning has been prioritized for the simulated transmit queue.",alerts:[["TORNADO WARNING","Example only — Graham County, NC","pill danger"],["Flash Flood Warning","Example only — neighboring area","pill warn"]],activity:[["09:44","DEMO: Tornado Warning queued as urgent"],["09:43","DEMO: MeshCore delivery acknowledged"],["09:42","DEMO: Meshtastic connection healthy"]]},
- offline:{health:"Degraded",meshtastic:"Offline",meshcore:"Connected",queue:"1",summary:"Simulated Meshtastic outage. MeshCore remains available for demonstration.",alerts:[["Radio connectivity warning","Example only — Meshtastic offline","pill warn"]],activity:[["09:45","DEMO: Meshtastic disconnected"],["09:44","DEMO: MeshCore fallback available"]]}
+ normal:{health:["Healthy","t-ok"],meshtastic:["Connected","t-ok"],meshcore:["Connected","t-ok"],queue:"0",summary:"Both example radios are connected. No active warning messages.",alerts:[["No active alerts","Demo area clear","badge ok"]],activity:[["09:42","Simulated radio heartbeat: Meshtastic OK"],["09:41","Simulated radio heartbeat: MeshCore OK"]]},
+ storm:{health:["Warning","t-warn"],meshtastic:["Connected","t-ok"],meshcore:["Connected","t-ok"],queue:"2",summary:"Fictional tornado warning has been prioritized for the simulated transmit queue.",alerts:[["TORNADO WARNING","Example only — Graham County, NC","badge danger"],["Flash Flood Warning","Example only — neighboring area","badge warn"]],activity:[["09:44","DEMO: Tornado Warning queued as urgent"],["09:43","DEMO: MeshCore delivery acknowledged"],["09:42","DEMO: Meshtastic connection healthy"]]},
+ offline:{health:["Degraded","t-warn"],meshtastic:["Offline","t-bad"],meshcore:["Connected","t-ok"],queue:"1",summary:"Simulated Meshtastic outage. MeshCore remains available for demonstration.",alerts:[["Radio connectivity warning","Example only — Meshtastic offline","badge warn"]],activity:[["09:45","DEMO: Meshtastic disconnected"],["09:44","DEMO: MeshCore fallback available"]]}
 };
-function render(){const d=data[document.getElementById("scenario").value];for(const k of ["health","meshtastic","meshcore","queue","summary"])document.getElementById(k).textContent=d[k];document.getElementById("alerts").innerHTML=d.alerts.map(x=>'<div class="event"><span class="'+x[2]+'">'+x[0]+'</span><p class="muted">'+x[1]+'</p></div>').join("");document.getElementById("activity").innerHTML=d.activity.map(x=>'<div class="event"><b>'+x[0]+'</b> &nbsp; '+x[1]+'</div>').join("")}
+function setTile(id,v){const e=document.getElementById(id);if(Array.isArray(v)){e.textContent=v[0];e.className="v "+v[1]}else e.textContent=v}
+function render(){const d=data[document.getElementById("scenario").value];for(const k of ["health","meshtastic","meshcore","queue"])setTile(k,d[k]);document.getElementById("summary").textContent=d.summary;
+const a=document.getElementById("alerts");a.replaceChildren();for(const x of d.alerts){const r=document.createElement("div");r.className="row";const b=document.createElement("span");b.className=x[2];b.textContent=x[0];const p=document.createElement("p");p.textContent=x[1];r.append(b,p);a.append(r)}
+const l=document.getElementById("activity");l.replaceChildren();for(const x of d.activity){const r=document.createElement("div");r.className="row";const t=document.createElement("span");t.className="time";t.textContent=x[0];r.append(t,x[1]);l.append(r)}}
 document.getElementById("scenario").addEventListener("change",render);const params=new URLSearchParams(location.search);if(data[params.get("scenario")])document.getElementById("scenario").value=params.get("scenario");render();
 </script></body></html>

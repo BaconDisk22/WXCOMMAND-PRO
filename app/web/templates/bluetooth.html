@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon %}
+{% block title %}Bluetooth scan{% endblock %}
+{% block content %}
+<a class="crumb" href="/settings#radios">{{ icon("chevron-left", "sm") }} Settings</a>
+<div class="page-header">
+  <div>
+    <h1>Bluetooth scan</h1>
+    <p class="lede">Find nearby Bluetooth LE devices from the computer running WXCOMMAND-PRO, then use the address in Settings. Scanning doesn't pair, connect or transmit.</p>
+  </div>
+  <span class="badge warning">Experimental</span>
+</div>
+<section class="card">
+  <div class="card-body stack">
+    <div class="split">
+      <button class="btn" id="scan" type="button">{{ icon("bluetooth", "sm") }} Scan nearby devices <span class="spinner" aria-hidden="true"></span></button>
+      <span class="subtle">A device in this list isn't necessarily a compatible radio.</span>
+    </div>
+    <div id="result" role="status" aria-live="polite"></div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  var b = document.getElementById('scan'), out = document.getElementById('result');
+  function make(tag, cls, text){ var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = String(text); return e; }
+  b.addEventListener('click', function(){
+    b.disabled = true; b.classList.add('is-busy'); out.replaceChildren(make('p', 'help', 'Scanning (up to 6 seconds)…'));
+    fetch('/settings/bluetooth/scan', { method: 'POST' })
+      .then(function(r){ return r.json().then(function(d){ if (!r.ok) throw new Error(d.detail || 'Scan failed'); return d; }); })
+      .then(function(data){
+        out.replaceChildren();
+        out.append(make('p', 'subtle', data.devices.length + ' Bluetooth device' + (data.devices.length === 1 ? '' : 's') + ' found'));
+        if (!data.devices.length) return;
+        var ul = make('ul', 'list card inset');
+        data.devices.forEach(function(d){
+          var li = make('li', 'item'), main = make('div');
+          main.append(make('div', 'item-title', d.name)); main.append(make('div', 'item-meta mono', d.address + (d.rssi === null ? '' : ' · ' + d.rssi + ' dBm')));
+          var copy = make('button', 'btn sm secondary', 'Copy address'); copy.type = 'button';
+          copy.onclick = function(){
+            (navigator.clipboard ? navigator.clipboard.writeText(d.address) : Promise.reject())
+              .then(function(){ WX.toast('Address copied. Paste it into Settings → Radios', 'success'); })
+              .catch(function(){ WX.toast(d.address, 'info', 10000); });
+          };
+          li.append(main, copy); ul.append(li);
+        });
+        out.append(ul);
+      })
+      .catch(function(e){ out.replaceChildren(make('div', 'banner warning', 'Scan unavailable: ' + e.message)); })
+      .then(function(){ b.disabled = false; b.classList.remove('is-busy'); });
+  });
+})();
+</script>
+{% endblock %}
