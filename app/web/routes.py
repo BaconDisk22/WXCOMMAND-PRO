@@ -438,8 +438,9 @@ async def check_updates(request: Request):
     ctx = {"current": __version__, "latest": None,
            "url": GITHUB_RELEASES_URL, "state": "error", "detail": ""}
     try:
+        # follow_redirects: GitHub answers 301 for a moved/renamed repository.
         async with httpx.AsyncClient(
-                timeout=10,
+                timeout=10, follow_redirects=True,
                 headers={"User-Agent": "MeshWX-update-check",
                          "Accept": "application/vnd.github+json"}) as client:
             r = await client.get(GITHUB_LATEST_RELEASE_API)
