@@ -1,20 +1,19 @@
+{% from "_ui.html" import icon %}
 {% if state == "update" %}
-  <div class="upd upd-new">
-    <span class="pill update">Update available</span>
-    <div class="upd-body">
-      <b>v{{ latest }}</b> is out &mdash; you're running <b>v{{ current }}</b>.
-      <a class="upd-link" href="{{ url }}" target="_blank" rel="noopener">Get it on GitHub &rarr;</a>
-    </div>
+  <div class="banner info">{{ icon("download") }}
+    <div><div class="banner-title"><span class="badge info">Update available</span></div>
+      <b>v{{ latest }}</b> is out. You're running <b>v{{ current }}</b>.</div>
+    <div class="banner-actions"><a class="btn sm" href="{{ url }}" target="_blank" rel="noopener">Get it on GitHub {{ icon("external", "sm") }}</a></div>
   </div>
 {% elif state == "current" %}
-  <div class="upd upd-ok">
-    <span class="pill ok">Up to date</span>
-    <div class="upd-body">You're running the latest version (v{{ current }}).{% if detail %} {{ detail }}{% endif %}</div>
+  <div class="banner success">{{ icon("check-circle") }}
+    <div><div class="banner-title"><span class="badge success">Up to date</span></div>
+      You're running the latest version (v{{ current }}).{% if detail %} {{ detail }}{% endif %}</div>
   </div>
 {% else %}
-  <div class="upd upd-err">
-    <span class="pill bad">Check failed</span>
-    <div class="upd-body">{{ detail or "Couldn't check for updates." }}
-      <a class="upd-link" href="{{ url }}" target="_blank" rel="noopener">Open the releases page</a></div>
+  <div class="banner danger">{{ icon("alert") }}
+    <div><div class="banner-title"><span class="badge danger">Check failed</span></div>
+      {{ detail or "Couldn't check for updates." }}</div>
+    <div class="banner-actions"><a class="btn sm secondary" href="{{ url }}" target="_blank" rel="noopener">Open the releases page {{ icon("external", "sm") }}</a></div>
   </div>
 {% endif %}

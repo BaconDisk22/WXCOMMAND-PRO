@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-{% block title %} &middot; Dashboard{% endblock %}
+{% block title %}Dashboard{% endblock %}
 {% block content %}
-{% include "_dash_top.html" %}
+<div class="stack-lg">
+  {% include "_dash_top.html" %}
 
-<div class="cols" id="dash-cols"
-     hx-get="/partials/dashboard" hx-trigger="every 10s" hx-swap="innerHTML">
-  {% include "_dash_cols.html" %}
-</div>
+  <div class="grid-main-side" id="dash-cols"
+       hx-get="/partials/dashboard" hx-trigger="every 10s" hx-swap="innerHTML">
+    {% include "_dash_cols.html" %}
+  </div>
 
-<div id="ipaws" hx-get="/partials/ipaws" hx-trigger="every 15s" hx-swap="innerHTML"
-     style="margin-top:18px;">
-  {% include "_ipaws_panel.html" %}
+  <div id="ipaws" hx-get="/partials/ipaws" hx-trigger="every 15s" hx-swap="innerHTML">
+    {% include "_ipaws_panel.html" %}
+  </div>
 </div>
 {% endblock %}
-

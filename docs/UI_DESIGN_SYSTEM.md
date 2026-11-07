@@ -1,0 +1,98 @@
+# WXCOMMAND-PRO UI design system
+
+The web UI (and the Mac app's window, which shows the same pages) uses one
+design system. Its approach follows Apple's Human Interface Guidelines and
+Material Design 3: clear hierarchy, system fonts, generous spacing, status
+shown in words rather than color alone, and motion only where it explains a
+change. It is styled as an operations console: dark by default, calm, and
+dense enough for a monitoring wall.
+
+## Files
+
+| File | What it holds |
+| --- | --- |
+| `app/web/static/wx.css` | Tokens (color, spacing, type, radius, motion), base styles, layout, components, screen helpers |
+| `app/web/static/wx.js` | Theme switch, navigation drawer, confirmation dialog, toasts, live status bar, unsaved-changes tracking, checkbox pickers |
+| `app/web/static/htmx.min.js` | htmx 2.0.4, vendored (npm integrity verified) so the UI works offline |
+| `app/web/templates/base.html` | App shell: sidebar navigation, status bar, dialog, toast host |
+| `app/web/templates/_ui.html` | Macros: `icon`, `badge`, `empty`, `protocol_label`, `conn_label` |
+| `app/web/templates/_icons.html` | One inline SVG icon sprite (24px grid, 1.8px rounded stroke) |
+
+Static files are served at `/static`. Their URLs carry a content hash
+(`?v=…`), so an upgrade never shows stale styling. Both PyInstaller specs
+ship `app/web/static`.
+
+## Tokens
+
+- **Color roles:** `--bg`, `--bg-elev`, `--surface`, `--surface-2/3`,
+  `--border`, `--text`, `--text-2`, `--text-3`, `--accent`, plus `success`,
+  `warning`, `danger` and `info`, each with a `-soft` tint. Screens use these
+  roles only, never hex values. Secondary and tertiary text meet WCAG AA on
+  cards in both themes.
+- **Themes:** dark (default) and light. The default follows the system
+  setting. The status-bar button cycles System → Light → Dark, and the choice
+  is remembered per browser and applied before first paint, so there is no
+  flash.
+- **Spacing:** a 4px scale, `--sp-1` (4) to `--sp-10` (40).
+- **Type:** the system font stack in `rem`, so it follows browser and system
+  text scaling. Steps: xs 12, sm 13, md 15, lg 17, xl 22, 2xl 28.
+- **Shape:** radius `sm` 6, `md` 10, `lg` 14, `pill`.
+- **Motion:** 120–200ms ease-out, all of it off under `prefers-reduced-motion`.
+- **Targets:** controls are at least 40px tall, and 44px on touch screens.
+
+## Components
+
+- **Layout:** card (header, body, footer, inset), stat tile, page header with
+  actions, grids.
+- **Status and data:** badge (with tones, and alert-decision variants), list
+  row (`item`), device row, table, chips.
+- **Controls:**
+  - Button: primary, secondary, ghost, danger and danger-outline, plus small
+    and icon-only sizes, with a built-in spinner that shows while htmx is busy.
+  - Field: label, help text, input, select, textarea, and input group.
+  - Switch, checkbox, and the checkbox picker grid (filter, select all/clear,
+    count).
+  - Disclosure, for advanced options; segmented control; popover menu.
+- **Feedback:** banner (info, success, warning, danger), empty state, result
+  block, skeleton loader, toast, and modal confirmation dialog.
+- **Page-level:** server-unreachable bar, sticky unsaved-changes action bar.
+
+## Navigation
+
+The sidebar has three groups. Below 860px it becomes a drawer behind a menu
+button.
+
+- **Monitor:** Operator Center, Dashboard
+- **Alerts & activity:** Weather alerts, Public safety alerts, Transmit log,
+  Send a message
+- **Setup:** Settings, Radios, Bluetooth scan, Troubleshoot
+
+A status bar on every page shows system health, radios online, and whether
+the app is broadcasting live or paused (dry run). It is driven by one shared
+15-second poll of `/api/ux/overview`, which pauses while the window is hidden.
+The Operator Center reuses the same poll instead of making its own.
+
+## Safety rules carried by the UI
+
+Every action that transmits over the air, changes broadcast mode, or deletes
+data asks first, through the styled dialog (`hx-confirm` or `WX.confirm`):
+
+- Manual send (shown as a danger confirmation)
+- Resend
+- Radio tests
+- Go live and Pause
+- Clear errors
+- Delete or activate a saved profile
+
+A test (`tests/test_ui_design_system.py`) guards that the over-the-air
+controls keep their confirmation.
+
+## Adding a screen
+
+1. Extend `base.html` and set `{% block title %}`.
+2. Start with a `page-header` (h1, a one-line `lede`, and `page-actions`).
+3. Build the content from `card` sections. Use `item` lists for records,
+   `badge` for state (always with words), and `empty(...)` when there is no
+   data.
+4. Put advanced options in a `details.disclosure`.
+5. Add the route to the `nav(...)` list in `base.html`.

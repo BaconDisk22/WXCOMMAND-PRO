@@ -1,25 +1,24 @@
+{% from "_ui.html" import icon %}
 {% set field = target | default('serial_port') %}
 <div id="ports-{{ field }}">
   {% if ports is none %}
   {% elif ports %}
-  <table>
-    <thead><tr><th>Device</th><th>Stable path</th><th>USB description</th>
-      <th></th></tr></thead>
-    <tbody>
-      {% for p in ports %}
-      <tr>
-        <td class="mono">{{ p.device }}</td>
-        <td class="mono">{{ p.stable_path or "-" }}</td>
-        <td>{{ p.description }}{% if p.vid %}
-            <span class="hint">({{ "%04x"|format(p.vid) }}:{{ "%04x"|format(p.pid or 0) }})</span>{% endif %}</td>
-        <td><button type="button" class="secondary"
-              onclick="document.getElementById('{{ field }}').value='{{ p.preferred_path }}'">
-              Use</button></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="card inset table-wrap" style="background:var(--surface)">
+    <table class="table">
+      <thead><tr><th>Port</th><th>Description</th><th><span class="sr-only">Action</span></th></tr></thead>
+      <tbody>
+        {% for p in ports %}
+        <tr>
+          <td class="wrap"><span class="mono">{{ p.device }}</span>{% if p.stable_path %}<div class="subtle mono">{{ p.stable_path }}</div>{% endif %}</td>
+          <td class="wrap">{{ p.description }}{% if p.vid %} <span class="subtle">({{ "%04x"|format(p.vid) }}:{{ "%04x"|format(p.pid or 0) }})</span>{% endif %}</td>
+          <td style="text-align:right"><button type="button" class="btn sm secondary"
+                onclick="var i=document.getElementById('{{ field }}');i.value='{{ p.preferred_path }}';i.dispatchEvent(new Event('input',{bubbles:true}));WX.toast('Port set to {{ p.preferred_path }}','success')">Use this port</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p class="hint">No serial ports detected.</p>
+  <div class="banner warning">{{ icon("usb", "sm") }}<div>No USB serial ports found. Check the cable (it must carry data, not just power) and that the radio is powered on, then scan again.</div></div>
   {% endif %}
 </div>

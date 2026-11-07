@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from .config import load_bootstrap
 from .db import Database
@@ -19,7 +20,7 @@ from .poller import WxPoller
 from .ipaws import IpawsPoller
 from .transmit import TransmitManager
 from .watchdog import Liveness
-from .web.routes import router
+from .web.routes import router, static_dir
 from .web.bluetooth_routes import router as bluetooth_router
 from .web.radio_tools import router as radio_tools_router
 from .web.operator import router as operator_router
@@ -148,6 +149,8 @@ def create_app() -> FastAPI:
                 return JSONResponse({"detail": "Unauthorized"}, status_code=401)
         return await call_next(request)
 
+    # Served locally so the UI works offline (htmx was previously loaded from a CDN).
+    app.mount("/static", StaticFiles(directory=str(static_dir())), name="static")
     app.include_router(router)
     app.include_router(bluetooth_router)
     app.include_router(radio_tools_router)

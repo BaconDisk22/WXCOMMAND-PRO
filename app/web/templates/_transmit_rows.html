@@ -1,33 +1,31 @@
+{% from "_ui.html" import icon, empty, protocol_label %}
+<ul class="list">
 {% for r in rows %}
-<div class="rec">
-  <div class="rec-head">
-    <span class="rec-time">{{ r["ts"] | localtime(tz) }}</span>
-    <span style="display:flex;gap:8px;align-items:center;">
-      {% set tp = r["transport"] %}
-      {% if tp %}<span class="pill radio">{{ "Meshtastic" if tp == "meshtastic" else ("MeshCore" if tp == "meshcore" else tp) }}</span>{% endif %}
-      {% if r["success"] %}<span class="pill ok">ok</span>{% else %}<span class="pill bad">fail</span>{% endif %}
-      <span class="pill muted">{{ "manual" if r["manual"] else "auto" }}</span>
-      {% if tp %}
-      <button class="secondary" style="padding:4px 12px;font-size:12.5px;"
-              hx-post="/transmit-log/resend/{{ r['id'] }}" hx-target="#tx-rows" hx-swap="innerHTML"
-              hx-confirm="Resend this message on {{ 'Meshtastic' if tp == 'meshtastic' else ('MeshCore' if tp == 'meshcore' else 'this radio') }} now? It transmits over the air.">Resend</button>
-      {% endif %}
-    </span>
-  </div>
-  <div class="rec-msgrow">
-    <div class="rec-msgwrap">
-      <div class="rec-lbl">TX Message</div>
-      <div class="rec-msg">{{ r["text"] }}</div>
+  {% set tp = r["transport"] %}
+  <li class="item">
+    <div>
+      <div class="cluster">
+        {% if r["success"] %}<span class="badge success">Delivered to radio</span>{% else %}<span class="badge danger">Failed</span>{% endif %}
+        {% if tp %}<span class="badge accent plain">{{ protocol_label(tp) }}</span>{% endif %}
+        <span class="badge plain">{{ "Manual" if r["manual"] else "Automatic" }}</span>
+      </div>
+      <div class="item-meta" style="margin-top:6px">{{ r["ts"] | localtime(tz) }} · channel {{ r["channel"] }} · {{ r["byte_count"] }} bytes</div>
     </div>
-    <div class="rec-detail">ch {{ r["channel"] }} &middot; {{ r["byte_count"] }} bytes</div>
-  </div>
-  {% if r["error"] %}
-  <div class="rec-areawrap">
-    <div class="rec-lbl">Error</div>
-    <div class="rec-area" style="color:var(--bad);">{{ r["error"] }}</div>
-  </div>
-  {% endif %}
-</div>
+    <div class="item-side">
+      {% if tp %}
+      <button class="btn sm secondary" type="button"
+              hx-post="/transmit-log/resend/{{ r['id'] }}" hx-target="#tx-rows" hx-swap="innerHTML"
+              hx-confirm="This transmits the message over the air again on {{ protocol_label(tp) }}, channel {{ r['channel'] }}."
+              data-confirm-title="Resend this message?" data-confirm-ok="Resend now"
+              data-success-toast="Message resent">{{ icon("refresh", "sm") }} Resend <span class="spinner" aria-hidden="true"></span></button>
+      {% endif %}
+    </div>
+    <div class="item-body">
+      <div class="message">{{ r["text"] }}</div>
+      {% if r["error"] %}<div class="banner danger">{{ icon("alert", "sm") }}<div>{{ r["error"] }}</div></div>{% endif %}
+    </div>
+  </li>
 {% else %}
-<div class="rec"><span class="hint">No transmissions yet.</span></div>
+  <li>{{ empty("Nothing transmitted yet", "Messages appear here the moment a radio sends them.", "broadcast") }}</li>
 {% endfor %}
+</ul>

@@ -1,43 +1,49 @@
-<section class="panel" style="padding:0;">
-  <div class="panel-head"><h3>Recent alerts</h3><a class="see" href="/history">View history &rarr;</a></div>
+{% from "_ui.html" import icon, empty, conn_label %}
+<section class="card">
+  <div class="card-header"><h2>{{ icon("cloud") }} Recent weather alerts</h2><a class="btn sm ghost" href="/history">View all {{ icon("chevron-right", "sm") }}</a></div>
+  <ul class="list">
   {% for a in recent %}
-  <div class="arow">
-    <div>
-      <div class="ev">{{ a.event }}</div>
-      <div class="meta">{{ a.area or a.detail }}</div>
-      {% if a.text %}<div class="txt">{{ a.text }}</div>{% endif %}
-    </div>
-    <div class="side"><span class="pill {{ a.disposition }}">{{ disp_label.get(a.disposition, a.disposition) }}</span><span class="time">{{ a.when }}</span></div>
-  </div>
+    <li class="item">
+      <div>
+        <div class="item-title">{{ a.event }}</div>
+        <div class="item-meta">{{ a.area or a.detail }}</div>
+      </div>
+      <div class="item-side"><span class="badge {{ a.disposition }}">{{ disp_label.get(a.disposition, a.disposition) }}</span><span class="subtle nowrap">{{ a.when }}</span></div>
+      {% if a.text %}<div class="item-body"><div class="message">{{ a.text }}</div></div>{% endif %}
+    </li>
   {% else %}
-  <div class="arow"><div class="meta">No alerts logged yet.</div></div>
+    <li>{{ empty("No alerts yet", "Alerts for your coverage area appear here as soon as the National Weather Service issues them.", "cloud") }}</li>
   {% endfor %}
+  </ul>
 </section>
 
-<aside>
-  <section class="panel" style="padding:0;margin-bottom:18px;">
-    <div class="panel-head"><h3>Radios</h3></div>
+<div class="stack">
+  <section class="card">
+    <div class="card-header"><h2>{{ icon("radio") }} Radios</h2><a class="btn sm ghost" href="/settings/radio-tools">Manage {{ icon("chevron-right", "sm") }}</a></div>
     {% for t in transports if t.enabled %}
-    <div class="node">
-      <div class="node-top">
-        <span class="node-name">{{ t.label }}</span>
-        <span class="dot {{ 'ok' if t.connected else 'bad' }}">{{ "Connected" if t.connected else "Offline" }}</span>
+    <div class="device {{ 'online' if t.connected else 'offline' }}">
+      <span class="device-icon">{{ icon("usb" if t.conn == "serial" else ("bluetooth" if t.conn == "ble" else "wifi")) }}</span>
+      <div>
+        <div class="device-name">{{ t.label }}</div>
+        <div class="device-meta">{{ conn_label(t.conn) }} · {{ t.target or "not configured" }} · channel {{ t.channel }}</div>
+        {% if t.error and not t.connected %}<div class="device-error">{{ t.error }}</div>{% endif %}
       </div>
-      <div class="node-meta">
-        {{ "USB" if t.conn == "serial" else "Network" }} &middot;
-        {{ t.target or "not configured" }} &middot; ch {{ t.channel }}
-      </div>
-      {% if t.error and not t.connected %}<div class="node-err">{{ t.error }}</div>{% endif %}
+      <span class="badge {{ 'success' if t.connected else 'danger' }}">{{ "Connected" if t.connected else "Offline" }}</span>
     </div>
     {% else %}
-    <div class="kv"><span class="k">No radios enabled</span><span class="v"><a class="see" href="/settings">Set up &rarr;</a></span></div>
+    {% call empty("No radios enabled", "Turn on Meshtastic or MeshCore to start broadcasting.", "radio") %}
+      <a class="btn sm" href="/settings#radios">Set up a radio</a>
+    {% endcall %}
     {% endfor %}
-    <div class="kv"><span class="k">Last TX</span><span class="v">{{ last_tx }}</span></div>
+    <div class="card-footer subtle">Last transmission: {{ last_tx }}</div>
   </section>
-  <section class="panel" style="padding:0;">
-    <div class="panel-head"><h3>Broadcasting</h3><a class="see" href="/settings">Edit &rarr;</a></div>
-    <div class="chips">
-      {% for ev in include %}<span class="chip">{{ ev }}</span>{% endfor %}
+
+  <section class="card">
+    <div class="card-header"><h2>{{ icon("bell") }} Alert types</h2><a class="btn sm ghost" href="/settings#alerts">Edit {{ icon("chevron-right", "sm") }}</a></div>
+    <div class="card-body">
+      {% if include %}
+      <div class="chips">{% for ev in include %}<span class="chip">{{ ev }}</span>{% endfor %}</div>
+      {% else %}<p class="subtle">No alert types selected.</p>{% endif %}
     </div>
   </section>
-</aside>
+</div>

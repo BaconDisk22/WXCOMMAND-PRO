@@ -124,40 +124,6 @@ async def set_failover(request: Request, setting: FailoverSetting):
 
 
 @router.get("/settings/radio-tools", response_class=HTMLResponse)
-async def radio_tools():
-    return HTMLResponse("""<!doctype html><html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MeshWX radio tools</title><style>
-body{font:16px/1.5 system-ui;background:#101a22;color:#e6eff2;max-width:850px;margin:3rem auto;padding:0 1rem}
-section{background:#1b2a35;border:1px solid #334753;border-radius:12px;padding:1rem;margin:1rem 0}
-button,input,select{padding:.6rem;margin:.3rem;border-radius:6px}
-button{background:#67c6be;color:#101a22;cursor:pointer}a{color:#67c6be}
-pre{white-space:pre-wrap;overflow-wrap:anywhere}input,select{background:#243944;color:white;border:1px solid #506673}
-</style></head><body><a href="/settings">← Settings</a><h1>Radio tools</h1>
-<section><h2>Live connection diagnostics</h2><button id="refresh">Refresh status</button><button id="reconnect">Reconnect radios</button><pre id="status" role="status"></pre></section>
-<section><h2>Radio failover</h2><p>Optional: transmit via the first successful enabled radio, falling back to the next only on failure. Default remains broadcast on all enabled radios.</p><label><input id="failover" type="checkbox"> Enable primary/backup failover</label><p id="failover-state" role="status"></p></section>
-<section><h2>Local network discovery</h2><p>Find Meshtastic mDNS announcements on this network. MeshCore may require manual IP configuration.</p>
-<button id="discover">Discover network radios</button><pre id="network" role="status"></pre></section>
-<section><h2>Saved radio profiles</h2><p>Save configurations, then activate or delete them below. Activation reconnects the selected radio.</p>
-<form id="profile"><input name="name" placeholder="Profile name" required maxlength="60">
-<select name="protocol"><option>meshtastic</option><option>meshcore</option></select>
-<select name="connection"><option>serial</option><option>tcp</option><option>ble</option></select>
-<input name="target" placeholder="Port, IP or BLE identifier" required maxlength="255">
-<button type="submit">Save profile</button></form><div id="profiles" role="status"></div></section>
-<script>
-const out=(id,value)=>document.getElementById(id).textContent=JSON.stringify(value,null,2);
-async function load(id,url,options){try{const r=await fetch(url,options),v=await r.json();out(id,r.ok?v:{error:v.detail||r.status})}catch(e){out(id,{error:String(e)})}}
-async function profiles(){const r=await fetch('/api/radios/profiles'),v=await r.json(),box=document.getElementById('profiles');box.replaceChildren();
-for(const p of v.profiles||[]){const row=document.createElement('div');row.style.padding='.6rem';const label=document.createElement('span');label.textContent=p.name+' · '+p.protocol+' · '+p.connection+' · '+p.target;row.append(label);
-for(const action of ['Activate','Delete']){const b=document.createElement('button');b.textContent=action;b.type='button';b.onclick=async()=>{if(action==='Delete'&&!confirm('Delete this saved profile?'))return;
-const url=action==='Activate'?'/api/radios/profiles/activate':'/api/radios/profiles';
-const response=await fetch(url,{method:action==='Activate'?'POST':'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:p.name,protocol:p.protocol})});
-if(!response.ok){const v=await response.json();alert(v.detail||'Action failed')}await profiles();await load('status','/api/radios/status')};row.append(b)}box.append(row)}}
-document.getElementById('refresh').onclick=()=>load('status','/api/radios/status');
-document.getElementById('reconnect').onclick=async()=>{await load('status','/api/radios/reconnect',{method:'POST'});};
-document.getElementById('discover').onclick=()=>load('network','/api/radios/discover-network');
-document.getElementById('profile').onsubmit=async e=>{e.preventDefault();const v=Object.fromEntries(new FormData(e.target));await load('status','/api/radios/profiles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(v)});await profiles()};
-fetch('/api/radios/failover').then(r=>r.json()).then(v=>document.getElementById('failover').checked=v.enabled);
-document.getElementById('failover').onchange=async e=>{const r=await fetch('/api/radios/failover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:e.target.checked})});document.getElementById('failover-state').textContent=r.ok?'Failover preference saved':'Unable to save failover setting'};
-load('status','/api/radios/status');profiles();setInterval(()=>load('status','/api/radios/status'),10000);
-</script></body></html>""")
+async def radio_tools(request: Request):
+    from .routes import render
+    return render(request, "radio_tools.html")

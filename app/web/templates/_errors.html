@@ -1,21 +1,27 @@
-<div class="panel" id="errors-panel">
-  <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center;">
-    <h3>Recent errors</h3>
+{% from "_ui.html" import icon, empty %}
+<section class="card" id="errors-panel">
+  <div class="card-header">
+    <h2>{{ icon("alert") }} Recent errors</h2>
     {% if errors %}
-    <button class="secondary" hx-post="/troubleshoot/clear-errors"
+    <button class="btn sm danger-outline" type="button" hx-post="/troubleshoot/clear-errors"
             hx-target="#errors-panel" hx-swap="outerHTML"
-            hx-confirm="Clear the error log?">Clear errors</button>
+            hx-confirm="The error history is deleted. This can't be undone."
+            data-confirm-title="Clear the error log?" data-confirm-ok="Clear errors" data-confirm-tone="danger"
+            data-success-toast="Error log cleared">{{ icon("trash", "sm") }} Clear errors</button>
     {% endif %}
   </div>
-  <table>
-    <thead><tr><th>Time</th><th>Source</th><th>Message</th></tr></thead>
-    <tbody>
-      {% for e in errors %}
-      <tr><td class="mono">{{ e["ts"] }}</td><td>{{ e["source"] }}</td>
-          <td class="hint">{{ e["message"] }}</td></tr>
-      {% else %}
-      <tr><td colspan="3" class="hint">No errors recorded.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+  {% if errors %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th style="width:190px">Time</th><th style="width:140px">Source</th><th>Message</th></tr></thead>
+      <tbody>
+        {% for e in errors %}
+        <tr><td class="nowrap">{{ e["ts"] | localtime(tz) }}</td><td>{{ e["source"] }}</td><td class="wrap">{{ e["message"] }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  {{ empty("No errors recorded", "Radio, network and NWS errors show up here when they happen.", "check-circle") }}
+  {% endif %}
+</section>

@@ -6,6 +6,7 @@ root = Path(SPECPATH).parent
 version = next(line.split('"')[1] for line in (root / 'app/__init__.py').read_text().splitlines()
                if line.startswith('__version__'))
 datas = [(str(root / 'app/web/templates'), 'app/web/templates'),
+         (str(root / 'app/web/static'), 'app/web/static'),
          (str(root / 'LICENSE'), '.')]
 binaries = []
 hiddenimports = collect_submodules('app')

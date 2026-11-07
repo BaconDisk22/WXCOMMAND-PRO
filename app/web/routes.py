@@ -25,6 +25,26 @@ def _template_dir() -> Path:
     return Path(__file__).parent / "templates"
 
 
+def static_dir() -> Path:
+    """The design system's CSS/JS and the vendored htmx, beside the templates."""
+    return _template_dir().parent / "static"
+
+
+def _asset_version() -> str:
+    """Cache-busting token for /static URLs: changes whenever an asset changes."""
+    import hashlib
+    h = hashlib.sha1()
+    for name in ("wx.css", "wx.js"):
+        try:
+            h.update((static_dir() / name).read_bytes())
+        except OSError:
+            pass
+    return h.hexdigest()[:10]
+
+
+ASSET_V = _asset_version()
+
+
 router = APIRouter()
 TEMPLATES = Jinja2Templates(directory=str(_template_dir()))
 
@@ -34,14 +54,14 @@ TEMPLATES.env.filters["localtime"] = fmt_local
 
 # History/dashboard status labels describe the FILTER decision, not transmission
 # (whether a message actually went out lives in the Transmit Log). So "sent"
-# becomes "pass" (the alert passed your rules); the rest already describe the
+# becomes "Passed filters" (the alert passed your rules); the rest already describe the
 # alert, not a send.
 DISP_LABELS = {
-    "sent": "pass",
-    "filtered": "filtered",
-    "update": "update",
-    "cancelled": "cancelled",
-    "duplicate": "duplicate",
+    "sent": "Passed filters",
+    "filtered": "Filtered out",
+    "update": "Update",
+    "cancelled": "Cancelled",
+    "duplicate": "Duplicate",
 }
 
 
@@ -53,7 +73,8 @@ def render(request: Request, name: str, **ctx):
     return TEMPLATES.TemplateResponse(
         request, name,
         {"max_bytes": MAX_PAYLOAD_BYTES, "tz": tz, "disp_label": DISP_LABELS,
-         "version": __version__, **ctx},
+         "version": __version__, "releases_url": GITHUB_RELEASES_URL,
+         "asset_v": ASSET_V, **ctx},
     )
 
 
@@ -553,7 +574,8 @@ async def save_settings(
 
     poller.poke()
     db.add_event("INFO", "settings saved")
-    return RedirectResponse("/settings", status_code=303)
+    # ?saved=1 lets the page confirm the save with a toast (then strips it).
+    return RedirectResponse("/settings?saved=1", status_code=303)
 
 
 @router.post("/settings/scan", response_class=HTMLResponse)
